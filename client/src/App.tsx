@@ -5,14 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import NewProject from "@/pages/new-project";
-import ProjectSuccess from "@/pages/project-success";
+import ProjectDashboard from "@/pages/project-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={NewProject} />
-      <Route path="/projects/:id" component={ProjectSuccess} />
+      <Route path="/projects/:id" component={ProjectDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
