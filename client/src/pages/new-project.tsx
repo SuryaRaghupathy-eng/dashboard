@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -167,6 +167,12 @@ export default function NewProject() {
             <span className="text-xl font-semibold">RankTracker</span>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="gap-2" data-testid="button-back-projects">
+                <ArrowLeft className="h-4 w-4" />
+                Projects
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon" data-testid="button-help">
               <HelpCircle className="h-5 w-5" />
             </Button>

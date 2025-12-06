@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import ProjectsList from "@/pages/projects-list";
 import NewProject from "@/pages/new-project";
 import ProjectDashboard from "@/pages/project-dashboard";
 import NotFound from "@/pages/not-found";
@@ -11,7 +12,8 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={NewProject} />
+      <Route path="/" component={ProjectsList} />
+      <Route path="/new" component={NewProject} />
       <Route path="/projects/:id" component={ProjectDashboard} />
       <Route component={NotFound} />
     </Switch>
