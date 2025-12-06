@@ -76,7 +76,7 @@ export function StepProjectDetails({
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="country" className="text-sm font-medium">
-              Country / Location
+              Country gl
             </Label>
             <Select
               value={formData.country}
@@ -93,7 +93,8 @@ export function StepProjectDetails({
               <SelectContent>
                 {countries.map((country) => (
                   <SelectItem key={country.code} value={country.code}>
-                    {country.name}
+                    <span className="font-mono text-xs text-muted-foreground mr-2">{country.code}</span>
+                    {country.name} ({country.code.toLowerCase()})
                   </SelectItem>
                 ))}
               </SelectContent>
