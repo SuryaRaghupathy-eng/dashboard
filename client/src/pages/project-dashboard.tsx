@@ -5,7 +5,6 @@ import {
   MapPin,
   Clock,
   Search,
-  Users,
   Settings,
   BarChart3,
   TrendingUp,
@@ -91,7 +90,6 @@ export default function ProjectDashboard() {
 
   const enabledEngines = project.searchEngines?.filter((e) => e.enabled) || [];
   const keywordCount = project.keywords?.length || 0;
-  const competitorCount = project.competitors?.filter((c) => c.url)?.length || 0;
 
   return (
     <div className="flex min-h-screen flex-col bg-background" data-testid="page-project-dashboard">
@@ -180,22 +178,6 @@ export default function ProjectDashboard() {
                     <p className="text-sm text-muted-foreground">Search Engines</p>
                     <p className="text-2xl font-semibold" data-testid="text-engine-count">
                       {enabledEngines.length}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card data-testid="card-competitors">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-chart-3/10">
-                    <Users className="h-6 w-6 text-chart-3" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Competitors</p>
-                    <p className="text-2xl font-semibold" data-testid="text-competitor-count">
-                      {competitorCount}
                     </p>
                   </div>
                 </div>
@@ -303,100 +285,47 @@ export default function ProjectDashboard() {
             </Card>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card data-testid="card-competitors-list">
-              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-                <CardTitle className="text-lg font-medium">Competitors</CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1" data-testid="button-add-competitor">
-                  <Plus className="h-4 w-4" />
-                  Add
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {competitorCount > 0 ? (
-                  <div className="space-y-2">
-                    {project.competitors
-                      ?.filter((c) => c.url)
-                      .slice(0, 5)
-                      .map((competitor, index) => (
-                        <div
-                          key={competitor.id || index}
-                          className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
-                          data-testid={`row-competitor-${index}`}
-                        >
-                          <a
-                            href={competitor.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm font-medium hover:underline"
-                          >
-                            <Globe className="h-4 w-4 text-muted-foreground" />
-                            {new URL(competitor.url).hostname}
-                            <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                          </a>
-                        </div>
-                      ))}
-                    {competitorCount > 5 && (
-                      <p className="pt-2 text-center text-sm text-muted-foreground">
-                        +{competitorCount - 5} more competitors
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center">
-                    <Users className="mx-auto h-8 w-8 text-muted-foreground/50" />
-                    <p className="mt-2 text-sm text-muted-foreground">No competitors added yet</p>
-                    <Button variant="outline" size="sm" className="mt-4 gap-1" data-testid="button-add-competitors-empty">
-                      <Plus className="h-4 w-4" />
-                      Add Competitors
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card data-testid="card-project-info">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-medium">Project Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Globe className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Website</p>
-                    <a
-                      href={project.websiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium hover:underline"
-                    >
-                      {project.websiteUrl}
-                    </a>
-                  </div>
+          <Card data-testid="card-project-info" className="max-w-md">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-medium">Project Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start gap-3">
+                <Globe className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Website</p>
+                  <a
+                    href={project.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium hover:underline"
+                  >
+                    {project.websiteUrl}
+                  </a>
                 </div>
-                <Separator />
-                <div className="flex items-start gap-3">
-                  <MapPin className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Country / Location</p>
-                    <p className="text-sm font-medium" data-testid="text-country-full">
-                      {getCountryName(project.country)}
-                    </p>
-                  </div>
+              </div>
+              <Separator />
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Country / Location</p>
+                  <p className="text-sm font-medium" data-testid="text-country-full">
+                    {getCountryName(project.country)}
+                  </p>
                 </div>
-                <Separator />
-                <div className="flex items-start gap-3">
-                  <Clock className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Timezone</p>
-                    <p className="text-sm font-medium" data-testid="text-timezone">
-                      {getTimezoneName(project.timezone)}
-                    </p>
-                  </div>
+              </div>
+              <Separator />
+              <div className="flex items-start gap-3">
+                <Clock className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Timezone</p>
+                  <p className="text-sm font-medium" data-testid="text-timezone">
+                    {getTimezoneName(project.timezone)}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
