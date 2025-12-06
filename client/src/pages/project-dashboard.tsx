@@ -1,5 +1,5 @@
 import { useParams, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Globe,
   MapPin,
@@ -10,6 +10,9 @@ import {
   ArrowLeft,
   ExternalLink,
   Plus,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
-import type { Project } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Project, RankingResult } from "@shared/schema";
 import { countries, timezones } from "@shared/schema";
 
 function getCountryName(code: string): string {
@@ -89,9 +94,37 @@ function LoadingSkeleton() {
 
 export default function ProjectDashboard() {
   const { id } = useParams<{ id: string }>();
+  const { toast } = useToast();
 
   const { data: project, isLoading } = useQuery<Project>({
     queryKey: ["/api/projects", id],
+  });
+
+  const { data: latestRanking, isLoading: isLoadingRanking } = useQuery<RankingResult | null>({
+    queryKey: ["/api/projects", id, "rankings", "latest"],
+    enabled: !!id,
+  });
+
+  const checkRankingsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/projects/${id}/rankings/check`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "rankings", "latest"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "rankings"] });
+      toast({
+        title: "Rankings checked",
+        description: "Your keyword rankings have been updated.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to check rankings",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoading) {
@@ -170,9 +203,19 @@ export default function ProjectDashboard() {
                 <Settings className="h-4 w-4" />
                 Settings
               </Button>
-              <Button size="sm" className="gap-2" data-testid="button-check-rankings">
-                <TrendingUp className="h-4 w-4" />
-                Check Rankings
+              <Button 
+                size="sm" 
+                className="gap-2" 
+                data-testid="button-check-rankings"
+                onClick={() => checkRankingsMutation.mutate()}
+                disabled={checkRankingsMutation.isPending || (project.keywords?.length || 0) === 0}
+              >
+                {checkRankingsMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <TrendingUp className="h-4 w-4" />
+                )}
+                {checkRankingsMutation.isPending ? "Checking..." : "Check Rankings"}
               </Button>
             </div>
           </div>
@@ -256,6 +299,75 @@ export default function ProjectDashboard() {
               </CardContent>
             </Card>
 
+            <Card data-testid="card-rankings">
+              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+                <CardTitle className="text-lg font-medium">Rankings</CardTitle>
+                {latestRanking && (
+                  <span className="text-xs text-muted-foreground">
+                    Last checked: {new Date(latestRanking.checkedAt).toLocaleDateString()}
+                  </span>
+                )}
+              </CardHeader>
+              <CardContent>
+                {isLoadingRanking ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <Skeleton key={i} className="h-10 w-full" />
+                    ))}
+                  </div>
+                ) : latestRanking && latestRanking.rankings.length > 0 ? (
+                  <div className="space-y-2">
+                    {latestRanking.rankings.map((ranking, index) => (
+                      <div
+                        key={ranking.keywordId || index}
+                        className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
+                        data-testid={`row-ranking-${index}`}
+                      >
+                        <span className="text-sm font-medium truncate flex-1 mr-2">{ranking.keyword}</span>
+                        <div className="flex items-center gap-2">
+                          {ranking.error ? (
+                            <Badge variant="destructive" className="gap-1" title={ranking.error}>
+                              <XCircle className="h-3 w-3" />
+                              Error
+                            </Badge>
+                          ) : ranking.position !== null ? (
+                            <Badge variant="default" className="gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              #{ranking.position}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1">
+                              <XCircle className="h-3 w-3" />
+                              Not in top 50
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center">
+                    <TrendingUp className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                    <p className="mt-2 text-sm text-muted-foreground">No rankings checked yet</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-4 gap-1" 
+                      data-testid="button-check-rankings-empty"
+                      onClick={() => checkRankingsMutation.mutate()}
+                      disabled={checkRankingsMutation.isPending || keywordCount === 0}
+                    >
+                      {checkRankingsMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <TrendingUp className="h-4 w-4" />
+                      )}
+                      Check Rankings
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <Card data-testid="card-project-info" className="max-w-md">

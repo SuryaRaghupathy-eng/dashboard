@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema } from "@shared/schema";
+import { insertProjectSchema, type KeywordRanking } from "@shared/schema";
 import { z } from "zod";
+import { fetchAllPagesResults, findRankingForDomain } from "./serper";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -81,6 +82,91 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete project" });
+    }
+  });
+
+  app.get("/api/projects/:id/rankings", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const project = await storage.getProject(id);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      const rankings = await storage.getRankings(id);
+      res.json(rankings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rankings" });
+    }
+  });
+
+  app.get("/api/projects/:id/rankings/latest", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const project = await storage.getProject(id);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      const latestRanking = await storage.getLatestRanking(id);
+      res.json(latestRanking || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch latest ranking" });
+    }
+  });
+
+  app.post("/api/projects/:id/rankings/check", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const project = await storage.getProject(id);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      if (!project.keywords || project.keywords.length === 0) {
+        return res.status(400).json({ error: "No keywords to check" });
+      }
+
+      const rankings: KeywordRanking[] = [];
+      const checkedAt = new Date().toISOString();
+
+      for (const keyword of project.keywords) {
+        try {
+          const { results, error: fetchError } = await fetchAllPagesResults(keyword.text, project.country);
+          const ranking = findRankingForDomain(results, project.websiteUrl);
+          
+          rankings.push({
+            keywordId: keyword.id,
+            keyword: keyword.text,
+            position: ranking.position,
+            url: ranking.url,
+            title: ranking.title,
+            checkedAt,
+            error: fetchError,
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          console.error(`Error checking ranking for keyword "${keyword.text}":`, errorMessage);
+          rankings.push({
+            keywordId: keyword.id,
+            keyword: keyword.text,
+            position: null,
+            url: null,
+            title: null,
+            checkedAt,
+            error: errorMessage,
+          });
+        }
+      }
+
+      const savedRanking = await storage.saveRanking({
+        projectId: id,
+        rankings,
+        checkedAt,
+      });
+
+      res.json(savedRanking);
+    } catch (error) {
+      console.error("Error checking rankings:", error);
+      res.status(500).json({ error: "Failed to check rankings" });
     }
   });
 

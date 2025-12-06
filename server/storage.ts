@@ -3,6 +3,7 @@ import {
   type InsertUser,
   type Project,
   type InsertProject,
+  type RankingResult,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -16,15 +17,21 @@ export interface IStorage {
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: string, project: Partial<InsertProject>): Promise<Project | undefined>;
   deleteProject(id: string): Promise<boolean>;
+
+  getRankings(projectId: string): Promise<RankingResult[]>;
+  getLatestRanking(projectId: string): Promise<RankingResult | undefined>;
+  saveRanking(ranking: Omit<RankingResult, "id">): Promise<RankingResult>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private projects: Map<string, Project>;
+  private rankings: Map<string, RankingResult[]>;
 
   constructor() {
     this.users = new Map();
     this.projects = new Map();
+    this.rankings = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -82,6 +89,27 @@ export class MemStorage implements IStorage {
 
   async deleteProject(id: string): Promise<boolean> {
     return this.projects.delete(id);
+  }
+
+  async getRankings(projectId: string): Promise<RankingResult[]> {
+    return this.rankings.get(projectId) || [];
+  }
+
+  async getLatestRanking(projectId: string): Promise<RankingResult | undefined> {
+    const projectRankings = this.rankings.get(projectId) || [];
+    if (projectRankings.length === 0) return undefined;
+    return projectRankings[projectRankings.length - 1];
+  }
+
+  async saveRanking(ranking: Omit<RankingResult, "id">): Promise<RankingResult> {
+    const id = randomUUID();
+    const newRanking: RankingResult = { ...ranking, id };
+    
+    const projectRankings = this.rankings.get(ranking.projectId) || [];
+    projectRankings.push(newRanking);
+    this.rankings.set(ranking.projectId, projectRankings);
+    
+    return newRanking;
   }
 }
 

@@ -61,6 +61,36 @@ export const projectFormSchema = z.object({
 
 export type ProjectFormData = z.infer<typeof projectFormSchema>;
 
+export const keywordRankingSchema = z.object({
+  keywordId: z.string(),
+  keyword: z.string(),
+  position: z.number().nullable(),
+  url: z.string().nullable(),
+  title: z.string().nullable(),
+  checkedAt: z.string(),
+  error: z.string().optional(),
+});
+
+export type KeywordRanking = z.infer<typeof keywordRankingSchema>;
+
+export const rankingResultSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  rankings: z.array(keywordRankingSchema),
+  checkedAt: z.string(),
+});
+
+export type RankingResult = z.infer<typeof rankingResultSchema>;
+
+export const serperOrganicResultSchema = z.object({
+  title: z.string(),
+  link: z.string(),
+  snippet: z.string().optional(),
+  position: z.number(),
+});
+
+export type SerperOrganicResult = z.infer<typeof serperOrganicResultSchema>;
+
 export const countries = [
   { code: "AF", name: "Afghanistan" },
   { code: "AL", name: "Albania" },
