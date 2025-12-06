@@ -6,12 +6,9 @@ import {
   Clock,
   Search,
   Settings,
-  BarChart3,
   TrendingUp,
   ArrowLeft,
   ExternalLink,
-  Monitor,
-  Smartphone,
   Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -88,7 +85,6 @@ export default function ProjectDashboard() {
     );
   }
 
-  const enabledEngines = project.searchEngines?.filter((e) => e.enabled) || [];
   const keywordCount = project.keywords?.length || 0;
 
   return (
@@ -168,22 +164,6 @@ export default function ProjectDashboard() {
               </CardContent>
             </Card>
 
-            <Card data-testid="card-search-engines">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-chart-1/10">
-                    <BarChart3 className="h-6 w-6 text-chart-1" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Search Engines</p>
-                    <p className="text-2xl font-semibold" data-testid="text-engine-count">
-                      {enabledEngines.length}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             <Card data-testid="card-location">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
@@ -246,43 +226,6 @@ export default function ProjectDashboard() {
               </CardContent>
             </Card>
 
-            <Card data-testid="card-search-engines-list">
-              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-                <CardTitle className="text-lg font-medium">Search Engines</CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1" data-testid="button-configure-engines">
-                  <Settings className="h-4 w-4" />
-                  Configure
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {enabledEngines.length > 0 ? (
-                  <div className="space-y-3">
-                    {enabledEngines.map((engine, index) => (
-                      <div
-                        key={engine.id || index}
-                        className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
-                        data-testid={`row-engine-${index}`}
-                      >
-                        <span className="text-sm font-medium">{engine.name}</span>
-                        <div className="flex items-center gap-2">
-                          {(engine.deviceType === "desktop" || engine.deviceType === "both") && (
-                            <Monitor className="h-4 w-4 text-muted-foreground" />
-                          )}
-                          {(engine.deviceType === "mobile" || engine.deviceType === "both") && (
-                            <Smartphone className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center">
-                    <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/50" />
-                    <p className="mt-2 text-sm text-muted-foreground">No search engines enabled</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           <Card data-testid="card-project-info" className="max-w-md">

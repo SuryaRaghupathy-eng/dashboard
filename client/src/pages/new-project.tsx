@@ -13,7 +13,6 @@ import { NavigationFooter } from "@/components/wizard/navigation-footer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   type ProjectFormData,
-  defaultSearchEngines,
   projectFormSchema,
 } from "@shared/schema";
 
@@ -25,7 +24,6 @@ const initialFormData: ProjectFormData = {
   country: "",
   timezone: "",
   keywords: [],
-  searchEngines: defaultSearchEngines,
   competitors: [],
 };
 

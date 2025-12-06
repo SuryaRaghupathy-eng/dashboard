@@ -3,9 +3,6 @@ import {
   type InsertUser,
   type Project,
   type InsertProject,
-  type Keyword,
-  type SearchEngine,
-  type Competitor,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -61,7 +58,6 @@ export class MemStorage implements IStorage {
       ...insertProject,
       id,
       keywords: insertProject.keywords || [],
-      searchEngines: insertProject.searchEngines || [],
       competitors: insertProject.competitors || [],
       status: insertProject.status || "draft",
     };

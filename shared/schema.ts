@@ -17,15 +17,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-export const searchEngineSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  enabled: z.boolean(),
-  deviceType: z.enum(["desktop", "mobile", "both"]),
-});
-
-export type SearchEngine = z.infer<typeof searchEngineSchema>;
-
 export const keywordSchema = z.object({
   id: z.string(),
   text: z.string().min(1),
@@ -48,7 +39,6 @@ export const projects = pgTable("projects", {
   country: text("country").notNull(),
   timezone: text("timezone").notNull(),
   keywords: jsonb("keywords").$type<Keyword[]>().notNull().default([]),
-  searchEngines: jsonb("search_engines").$type<SearchEngine[]>().notNull().default([]),
   competitors: jsonb("competitors").$type<Competitor[]>().notNull().default([]),
   status: text("status").notNull().default("draft"),
 });
@@ -66,19 +56,10 @@ export const projectFormSchema = z.object({
   country: z.string().min(1, "Country is required"),
   timezone: z.string().min(1, "Timezone is required"),
   keywords: z.array(keywordSchema).default([]),
-  searchEngines: z.array(searchEngineSchema).default([]),
   competitors: z.array(competitorSchema).default([]),
 });
 
 export type ProjectFormData = z.infer<typeof projectFormSchema>;
-
-export const defaultSearchEngines: SearchEngine[] = [
-  { id: "google", name: "Google", enabled: true, deviceType: "both" },
-  { id: "bing", name: "Bing", enabled: false, deviceType: "desktop" },
-  { id: "yahoo", name: "Yahoo", enabled: false, deviceType: "desktop" },
-  { id: "yandex", name: "Yandex", enabled: false, deviceType: "desktop" },
-  { id: "baidu", name: "Baidu", enabled: false, deviceType: "desktop" },
-];
 
 export const countries = [
   { code: "US", name: "United States" },
