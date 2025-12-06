@@ -4,9 +4,7 @@ import { cn } from "@/lib/utils";
 const steps = [
   { id: 1, name: "Project Details" },
   { id: 2, name: "Keywords" },
-  { id: 3, name: "Search Engines" },
-  { id: 4, name: "Competitors" },
-  { id: 5, name: "Review" },
+  { id: 3, name: "Review" },
 ];
 
 interface ProgressIndicatorProps {

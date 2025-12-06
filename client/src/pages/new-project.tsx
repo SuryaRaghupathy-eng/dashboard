@@ -8,8 +8,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ProgressIndicator } from "@/components/wizard/progress-indicator";
 import { StepProjectDetails } from "@/components/wizard/step-project-details";
 import { StepKeywords } from "@/components/wizard/step-keywords";
-import { StepSearchEngines } from "@/components/wizard/step-search-engines";
-import { StepCompetitors } from "@/components/wizard/step-competitors";
 import { StepReview } from "@/components/wizard/step-review";
 import { NavigationFooter } from "@/components/wizard/navigation-footer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -19,7 +17,7 @@ import {
   projectFormSchema,
 } from "@shared/schema";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 3;
 
 const initialFormData: ProjectFormData = {
   name: "",
@@ -92,18 +90,6 @@ export default function NewProject() {
       }
     }
 
-    if (step === 4) {
-      formData.competitors.forEach((competitor) => {
-        if (competitor.url) {
-          try {
-            new URL(competitor.url);
-          } catch {
-            newErrors[`competitor_${competitor.id}`] = "Invalid URL";
-          }
-        }
-      });
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -164,21 +150,6 @@ export default function NewProject() {
           <StepKeywords formData={formData} updateFormData={updateFormData} />
         );
       case 3:
-        return (
-          <StepSearchEngines
-            formData={formData}
-            updateFormData={updateFormData}
-          />
-        );
-      case 4:
-        return (
-          <StepCompetitors
-            formData={formData}
-            updateFormData={updateFormData}
-            errors={errors}
-          />
-        );
-      case 5:
         return <StepReview formData={formData} goToStep={goToStep} />;
       default:
         return null;
