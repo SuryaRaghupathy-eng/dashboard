@@ -28,6 +28,32 @@ function getTimezoneName(value: string): string {
   return timezones.find((t) => t.value === value)?.label || value;
 }
 
+function getDomainFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+function SiteFavicon({ url, size = 24 }: { url: string; size?: number }) {
+  const domain = getDomainFromUrl(url);
+  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=${size * 2}`;
+  
+  return (
+    <img
+      src={faviconUrl}
+      alt=""
+      width={size}
+      height={size}
+      className="rounded-sm"
+      onError={(e) => {
+        e.currentTarget.style.display = 'none';
+      }}
+    />
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -112,27 +138,31 @@ export default function ProjectDashboard() {
       <main className="flex-1 py-8">
         <div className="mx-auto max-w-7xl space-y-8 px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-project-name">
-                  {project.name}
-                </h1>
-                <Badge variant="outline" className="bg-chart-2/10 text-chart-2 border-chart-2/20">
-                  Active
-                </Badge>
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+                <SiteFavicon url={project.websiteUrl} size={28} />
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <a
-                  href={project.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 hover:text-foreground hover:underline"
-                  data-testid="link-website-url"
-                >
-                  <Globe className="h-4 w-4" />
-                  {project.websiteUrl}
-                  <ExternalLink className="h-3 w-3" />
-                </a>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-project-name">
+                    {project.name}
+                  </h1>
+                  <Badge variant="outline" className="bg-chart-2/10 text-chart-2 border-chart-2/20">
+                    Active
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <a
+                    href={project.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 hover:text-foreground hover:underline"
+                    data-testid="link-website-url"
+                  >
+                    {getDomainFromUrl(project.websiteUrl)}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">

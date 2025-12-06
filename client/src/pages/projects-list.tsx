@@ -20,6 +20,32 @@ function getCountryName(code: string): string {
   return countries.find((c) => c.code === code)?.name || code;
 }
 
+function getDomainFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+function SiteFavicon({ url, size = 24 }: { url: string; size?: number }) {
+  const domain = getDomainFromUrl(url);
+  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=${size * 2}`;
+  
+  return (
+    <img
+      src={faviconUrl}
+      alt=""
+      width={size}
+      height={size}
+      className="rounded-sm"
+      onError={(e) => {
+        e.currentTarget.style.display = 'none';
+      }}
+    />
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -95,22 +121,21 @@ export default function ProjectsList() {
             <div className="space-y-3">
               {projects.map((project) => {
                 const keywordCount = project.keywords?.length || 0;
-                const enabledEngines = project.searchEngines?.filter((e) => e.enabled) || [];
 
                 return (
                   <Link key={project.id} href={`/projects/${project.id}`}>
                     <Card className="hover-elevate cursor-pointer transition-colors" data-testid={`card-project-${project.id}`}>
                       <CardContent className="flex items-center justify-between gap-4 p-4">
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                            <Globe className="h-6 w-6 text-primary" />
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+                            <SiteFavicon url={project.websiteUrl} size={24} />
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium truncate" data-testid={`text-project-name-${project.id}`}>
                               {project.name}
                             </p>
                             <p className="text-sm text-muted-foreground truncate">
-                              {project.websiteUrl}
+                              {getDomainFromUrl(project.websiteUrl)}
                             </p>
                           </div>
                         </div>
