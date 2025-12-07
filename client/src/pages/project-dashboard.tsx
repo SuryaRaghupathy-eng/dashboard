@@ -12,6 +12,9 @@ import {
   RefreshCw,
   CheckCircle2,
   XCircle,
+  ArrowUp,
+  ArrowDown,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,6 +103,34 @@ export default function ProjectDashboard() {
     enabled: !!id,
     refetchInterval: 30000, // Poll every 30 seconds to pick up scheduler updates
   });
+
+  const { data: allRankings } = useQuery<RankingResult[]>({
+    queryKey: ["/api/projects", id, "rankings"],
+    enabled: !!id,
+    refetchInterval: 30000,
+  });
+
+  // Get the previous ranking to compare position changes
+  const previousRanking = allRankings && allRankings.length >= 2 
+    ? allRankings[allRankings.length - 2] 
+    : null;
+
+  // Helper function to get position change
+  const getPositionChange = (keywordId: string, currentPosition: number | null): { change: number | null; direction: 'up' | 'down' | 'same' | null } => {
+    if (!previousRanking || currentPosition === null) {
+      return { change: null, direction: null };
+    }
+    
+    const prevRanking = previousRanking.rankings.find(r => r.keywordId === keywordId);
+    if (!prevRanking || prevRanking.position === null) {
+      return { change: null, direction: null };
+    }
+    
+    const change = prevRanking.position - currentPosition; // Positive = improved (went up in rank)
+    if (change > 0) return { change, direction: 'up' };
+    if (change < 0) return { change: Math.abs(change), direction: 'down' };
+    return { change: 0, direction: 'same' };
+  };
 
   const checkRankingsMutation = useMutation({
     mutationFn: async () => {
@@ -292,10 +323,39 @@ export default function ProjectDashboard() {
                                   Error
                                 </Badge>
                               ) : ranking.found && ranking.position !== null ? (
-                                <Badge variant="default" className="gap-1">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  #{ranking.position}
-                                </Badge>
+                                <>
+                                  {(() => {
+                                    const posChange = getPositionChange(keyword.id, ranking.position);
+                                    if (posChange.direction === 'up' && posChange.change !== null && posChange.change > 0) {
+                                      return (
+                                        <Badge variant="outline" className="gap-1 text-green-600 dark:text-green-400 border-green-300 dark:border-green-700" data-testid={`badge-change-${index}`}>
+                                          <ArrowUp className="h-3 w-3" />
+                                          {posChange.change}
+                                        </Badge>
+                                      );
+                                    }
+                                    if (posChange.direction === 'down' && posChange.change !== null && posChange.change > 0) {
+                                      return (
+                                        <Badge variant="outline" className="gap-1 text-red-600 dark:text-red-400 border-red-300 dark:border-red-700" data-testid={`badge-change-${index}`}>
+                                          <ArrowDown className="h-3 w-3" />
+                                          {posChange.change}
+                                        </Badge>
+                                      );
+                                    }
+                                    if (posChange.direction === 'same') {
+                                      return (
+                                        <Badge variant="outline" className="gap-1 text-muted-foreground" data-testid={`badge-change-${index}`}>
+                                          <Minus className="h-3 w-3" />
+                                        </Badge>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                  <Badge variant="default" className="gap-1">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    #{ranking.position}
+                                  </Badge>
+                                </>
                               ) : (
                                 <Badge variant="secondary" className="gap-1">
                                   <XCircle className="h-3 w-3" />
