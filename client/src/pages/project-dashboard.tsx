@@ -15,6 +15,7 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,8 +25,21 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Project, RankingResult } from "@shared/schema";
-import { countries } from "@shared/schema";
+import type { Project, RankingResult, Settings as SettingsType } from "@shared/schema";
+import { countries, SCHEDULE_INTERVALS } from "@shared/schema";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 function getCountryName(code: string): string {
   return countries.find((c) => c.code === code)?.name || code;
@@ -154,6 +168,31 @@ export default function ProjectDashboard() {
     },
   });
 
+  const { data: settings } = useQuery<SettingsType>({
+    queryKey: ["/api/settings"],
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (newSettings: Partial<SettingsType>) => {
+      const response = await apiRequest("PUT", "/api/settings", newSettings);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({
+        title: "Settings updated",
+        description: `Rankings will now be checked every ${data.scheduleInterval} minutes.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update settings",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading) {
     return <LoadingSkeleton />;
   }
@@ -246,10 +285,48 @@ export default function ProjectDashboard() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" className="gap-2" data-testid="button-settings">
-                <Settings className="h-4 w-4" />
-                Settings
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2" data-testid="button-settings">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72" align="end">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none">Scheduler Settings</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Configure how often rankings are automatically checked.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="schedule-interval" className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Check Interval
+                      </Label>
+                      <Select
+                        value={settings?.scheduleInterval?.toString() || "5"}
+                        onValueChange={(value) => {
+                          updateSettingsMutation.mutate({ scheduleInterval: parseInt(value) as 5 | 10 | 15 });
+                        }}
+                        disabled={updateSettingsMutation.isPending}
+                      >
+                        <SelectTrigger id="schedule-interval" data-testid="select-schedule-interval">
+                          <SelectValue placeholder="Select interval" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SCHEDULE_INTERVALS.map((interval) => (
+                            <SelectItem key={interval} value={interval.toString()} data-testid={`option-interval-${interval}`}>
+                              Every {interval} minutes
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Button 
                 size="sm" 
                 className="gap-2" 

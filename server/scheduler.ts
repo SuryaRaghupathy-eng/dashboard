@@ -1,11 +1,10 @@
 import { storage } from "./storage";
 import { trackKeywordRanking } from "./serper";
-import type { KeywordRanking } from "@shared/schema";
-
-const FIVE_MINUTES = 5 * 60 * 1000;
+import type { KeywordRanking, Settings } from "@shared/schema";
 
 let schedulerInterval: NodeJS.Timeout | null = null;
 let isRunning = false;
+let currentIntervalMinutes = 5;
 
 function logScheduler(message: string): void {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -106,17 +105,34 @@ async function checkAllProjectRankings(): Promise<void> {
   }
 }
 
-export function startScheduler(): void {
+function startSchedulerWithInterval(intervalMinutes: number): void {
   if (schedulerInterval) {
-    logScheduler("Scheduler already running");
-    return;
+    clearInterval(schedulerInterval);
+    schedulerInterval = null;
   }
 
-  logScheduler("Starting automatic ranking scheduler (every 5 minutes)");
+  currentIntervalMinutes = intervalMinutes;
+  const intervalMs = intervalMinutes * 60 * 1000;
+
+  logScheduler(`Starting automatic ranking scheduler (every ${intervalMinutes} minutes)`);
   
-  schedulerInterval = setInterval(checkAllProjectRankings, FIVE_MINUTES);
+  schedulerInterval = setInterval(checkAllProjectRankings, intervalMs);
   
-  logScheduler("Scheduler started - first automatic check in 5 minutes");
+  logScheduler(`Scheduler started - first automatic check in ${intervalMinutes} minutes`);
+}
+
+function handleSettingsChange(newSettings: Settings): void {
+  if (newSettings.scheduleInterval !== currentIntervalMinutes) {
+    logScheduler(`Schedule interval changed to ${newSettings.scheduleInterval} minutes, restarting scheduler`);
+    startSchedulerWithInterval(newSettings.scheduleInterval);
+  }
+}
+
+storage.setOnSettingsChange(handleSettingsChange);
+
+export async function startScheduler(): Promise<void> {
+  const settings = await storage.getSettings();
+  startSchedulerWithInterval(settings.scheduleInterval);
 }
 
 export function stopScheduler(): void {
@@ -130,4 +146,8 @@ export function stopScheduler(): void {
 export function runImmediateCheck(): Promise<void> {
   logScheduler("Running immediate ranking check");
   return checkAllProjectRankings();
+}
+
+export function getCurrentInterval(): number {
+  return currentIntervalMinutes;
 }

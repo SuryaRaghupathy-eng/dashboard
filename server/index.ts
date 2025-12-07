@@ -92,9 +92,14 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
       reusePort: true,
     },
-    () => {
+    async () => {
       log(`serving on port ${port}`);
-      startScheduler();
+      try {
+        await startScheduler();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        log(`Failed to start scheduler: ${message}`);
+      }
     },
   );
 })();

@@ -4,6 +4,8 @@ import {
   type Project,
   type InsertProject,
   type RankingResult,
+  type Settings,
+  type ScheduleInterval,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -21,17 +23,28 @@ export interface IStorage {
   getRankings(projectId: string): Promise<RankingResult[]>;
   getLatestRanking(projectId: string): Promise<RankingResult | undefined>;
   saveRanking(ranking: Omit<RankingResult, "id">): Promise<RankingResult>;
+
+  getSettings(): Promise<Settings>;
+  updateSettings(settings: Partial<Settings>): Promise<Settings>;
+  setOnSettingsChange(callback: (settings: Settings) => void): void;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private projects: Map<string, Project>;
   private rankings: Map<string, RankingResult[]>;
+  private settings: Settings;
+  private onSettingsChange?: (settings: Settings) => void;
 
   constructor() {
     this.users = new Map();
     this.projects = new Map();
     this.rankings = new Map();
+    this.settings = { scheduleInterval: 5 };
+  }
+
+  setOnSettingsChange(callback: (settings: Settings) => void): void {
+    this.onSettingsChange = callback;
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -110,6 +123,18 @@ export class MemStorage implements IStorage {
     this.rankings.set(ranking.projectId, projectRankings);
     
     return newRanking;
+  }
+
+  async getSettings(): Promise<Settings> {
+    return { ...this.settings };
+  }
+
+  async updateSettings(updates: Partial<Settings>): Promise<Settings> {
+    this.settings = { ...this.settings, ...updates };
+    if (this.onSettingsChange) {
+      this.onSettingsChange({ ...this.settings });
+    }
+    return { ...this.settings };
   }
 }
 

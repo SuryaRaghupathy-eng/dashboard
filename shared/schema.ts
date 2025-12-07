@@ -74,6 +74,18 @@ export const keywordRankingSchema = z.object({
 
 export type KeywordRanking = z.infer<typeof keywordRankingSchema>;
 
+export const SCHEDULE_INTERVALS = [5, 10, 15] as const;
+export type ScheduleInterval = typeof SCHEDULE_INTERVALS[number];
+
+export const settingsSchema = z.object({
+  scheduleInterval: z.number().refine((val): val is ScheduleInterval => 
+    SCHEDULE_INTERVALS.includes(val as ScheduleInterval), 
+    { message: "Invalid schedule interval" }
+  ),
+});
+
+export type Settings = z.infer<typeof settingsSchema>;
+
 export const rankingResultSchema = z.object({
   id: z.string(),
   projectId: z.string(),

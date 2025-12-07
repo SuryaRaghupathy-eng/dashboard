@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, type KeywordRanking } from "@shared/schema";
+import { insertProjectSchema, settingsSchema, type KeywordRanking } from "@shared/schema";
 import { z } from "zod";
 import { trackKeywordRanking } from "./serper";
 
@@ -172,6 +172,32 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error checking rankings:", error);
       res.status(500).json({ error: "Failed to check rankings" });
+    }
+  });
+
+  app.get("/api/settings", async (_req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.put("/api/settings", async (req, res) => {
+    try {
+      const parseResult = settingsSchema.partial().safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: parseResult.error.issues,
+        });
+      }
+
+      const updatedSettings = await storage.updateSettings(parseResult.data);
+      res.json(updatedSettings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update settings" });
     }
   });
 
