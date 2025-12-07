@@ -98,6 +98,7 @@ export default function ProjectDashboard() {
   const { data: latestRanking, isLoading: isLoadingRanking } = useQuery<RankingResult | null>({
     queryKey: ["/api/projects", id, "rankings", "latest"],
     enabled: !!id,
+    refetchInterval: 30000, // Poll every 30 seconds to pick up scheduler updates
   });
 
   const checkRankingsMutation = useMutation({
