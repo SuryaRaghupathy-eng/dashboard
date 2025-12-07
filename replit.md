@@ -129,3 +129,17 @@ Preferred communication style: Simple, everyday language.
 - TypeScript with strict mode and ESNext module resolution
 - Path aliases for clean imports across client, server, and shared code
 - Bundler module resolution for compatibility with modern tools
+
+### Automatic Ranking Scheduler
+
+**Background Processing**
+- Automatic keyword ranking checks run every 5 minutes
+- Scheduler starts automatically when the server boots
+- Re-entrancy protection prevents overlapping execution cycles
+- Uses the Serper API for Google search ranking data
+
+**Scheduler Features**
+- Iterates through all projects and their keywords
+- Saves ranking results to storage for historical tracking
+- Logs all scheduler activity with timestamps
+- Graceful error handling per-keyword to prevent full batch failures
