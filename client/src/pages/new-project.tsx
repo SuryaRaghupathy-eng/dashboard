@@ -22,7 +22,6 @@ const initialFormData: ProjectFormData = {
   name: "",
   websiteUrl: "",
   country: "",
-  timezone: "",
   keywords: [],
   competitors: [],
 };
@@ -82,9 +81,6 @@ export default function NewProject() {
       }
       if (!formData.country) {
         newErrors.country = "Country is required";
-      }
-      if (!formData.timezone) {
-        newErrors.timezone = "Timezone is required";
       }
     }
 

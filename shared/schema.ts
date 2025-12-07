@@ -37,7 +37,6 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   websiteUrl: text("website_url").notNull(),
   country: text("country").notNull(),
-  timezone: text("timezone").notNull(),
   keywords: jsonb("keywords").$type<Keyword[]>().notNull().default([]),
   competitors: jsonb("competitors").$type<Competitor[]>().notNull().default([]),
   status: text("status").notNull().default("draft"),
@@ -54,7 +53,6 @@ export const projectFormSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   websiteUrl: z.string().url("Please enter a valid URL"),
   country: z.string().min(1, "Country is required"),
-  timezone: z.string().min(1, "Timezone is required"),
   keywords: z.array(keywordSchema).default([]),
   competitors: z.array(competitorSchema).default([]),
 });
@@ -253,16 +251,3 @@ export const countries = [
   { code: "ZW", name: "Zimbabwe" },
 ];
 
-export const timezones = [
-  { value: "America/New_York", label: "Eastern Time (US & Canada)" },
-  { value: "America/Chicago", label: "Central Time (US & Canada)" },
-  { value: "America/Denver", label: "Mountain Time (US & Canada)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (US & Canada)" },
-  { value: "Europe/London", label: "London" },
-  { value: "Europe/Paris", label: "Paris" },
-  { value: "Europe/Berlin", label: "Berlin" },
-  { value: "Asia/Tokyo", label: "Tokyo" },
-  { value: "Asia/Shanghai", label: "Shanghai" },
-  { value: "Asia/Singapore", label: "Singapore" },
-  { value: "Australia/Sydney", label: "Sydney" },
-];

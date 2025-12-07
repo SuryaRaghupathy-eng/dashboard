@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Globe,
   MapPin,
-  Clock,
   Search,
   Settings,
   TrendingUp,
@@ -23,14 +22,10 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Project, RankingResult } from "@shared/schema";
-import { countries, timezones } from "@shared/schema";
+import { countries } from "@shared/schema";
 
 function getCountryName(code: string): string {
   return countries.find((c) => c.code === code)?.name || code;
-}
-
-function getTimezoneName(value: string): string {
-  return timezones.find((t) => t.value === value)?.label || value;
 }
 
 function getDomainFromUrl(url: string): string {
@@ -396,16 +391,6 @@ export default function ProjectDashboard() {
                   <p className="text-sm text-muted-foreground">Country / Location</p>
                   <p className="text-sm font-medium" data-testid="text-country-full">
                     {getCountryName(project.country)}
-                  </p>
-                </div>
-              </div>
-              <Separator />
-              <div className="flex items-start gap-3">
-                <Clock className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Timezone</p>
-                  <p className="text-sm font-medium" data-testid="text-timezone">
-                    {getTimezoneName(project.timezone)}
                   </p>
                 </div>
               </div>

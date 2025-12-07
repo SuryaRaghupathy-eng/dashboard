@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { countries, timezones, type ProjectFormData } from "@shared/schema";
+import { countries, type ProjectFormData } from "@shared/schema";
 
 interface StepProjectDetailsProps {
   formData: ProjectFormData;
@@ -73,68 +73,36 @@ export function StepProjectDetails({
           )}
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="country" className="text-sm font-medium">
-              Country gl
-            </Label>
-            <Select
-              value={formData.country}
-              onValueChange={(value) => updateFormData({ country: value })}
+        <div className="space-y-2">
+          <Label htmlFor="country" className="text-sm font-medium">
+            Country
+          </Label>
+          <Select
+            value={formData.country}
+            onValueChange={(value) => updateFormData({ country: value })}
+          >
+            <SelectTrigger
+              id="country"
+              className={errors.country ? "border-destructive" : ""}
+              data-testid="select-country"
             >
-              <SelectTrigger
-                id="country"
-                className={errors.country ? "border-destructive" : ""}
-                data-testid="select-country"
-              >
-                <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
-                <SelectValue placeholder="Select country" />
-              </SelectTrigger>
-              <SelectContent>
-                {countries.map((country) => (
-                  <SelectItem key={country.code} value={country.code}>
-                    <span className="font-mono text-xs text-muted-foreground mr-2">{country.code}</span>
-                    {country.name} ({country.code.toLowerCase()})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.country && (
-              <p className="text-sm text-destructive" data-testid="error-country">
-                {errors.country}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="timezone" className="text-sm font-medium">
-              Timezone
-            </Label>
-            <Select
-              value={formData.timezone}
-              onValueChange={(value) => updateFormData({ timezone: value })}
-            >
-              <SelectTrigger
-                id="timezone"
-                className={errors.timezone ? "border-destructive" : ""}
-                data-testid="select-timezone"
-              >
-                <SelectValue placeholder="Select timezone" />
-              </SelectTrigger>
-              <SelectContent>
-                {timezones.map((tz) => (
-                  <SelectItem key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.timezone && (
-              <p className="text-sm text-destructive" data-testid="error-timezone">
-                {errors.timezone}
-              </p>
-            )}
-          </div>
+              <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
+              <SelectValue placeholder="Select country" />
+            </SelectTrigger>
+            <SelectContent>
+              {countries.map((country) => (
+                <SelectItem key={country.code} value={country.code}>
+                  <span className="font-mono text-xs text-muted-foreground mr-2">{country.code}</span>
+                  {country.name} ({country.code.toLowerCase()})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.country && (
+            <p className="text-sm text-destructive" data-testid="error-country">
+              {errors.country}
+            </p>
+          )}
         </div>
       </div>
     </div>

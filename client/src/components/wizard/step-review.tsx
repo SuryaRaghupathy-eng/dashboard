@@ -2,7 +2,7 @@ import { Pencil, Globe, Tag, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { type ProjectFormData, countries, timezones } from "@shared/schema";
+import { type ProjectFormData, countries } from "@shared/schema";
 
 interface StepReviewProps {
   formData: ProjectFormData;
@@ -11,7 +11,6 @@ interface StepReviewProps {
 
 export function StepReview({ formData, goToStep }: StepReviewProps) {
   const countryName = countries.find((c) => c.code === formData.country)?.name || formData.country;
-  const timezoneName = timezones.find((t) => t.value === formData.timezone)?.label || formData.timezone;
 
   return (
     <div className="space-y-8" data-testid="step-review">
@@ -59,10 +58,6 @@ export function StepReview({ formData, goToStep }: StepReviewProps) {
               <div>
                 <span className="text-sm text-muted-foreground">Country</span>
                 <p className="font-medium" data-testid="text-review-country">{countryName || "—"}</p>
-              </div>
-              <div>
-                <span className="text-sm text-muted-foreground">Timezone</span>
-                <p className="font-medium" data-testid="text-review-timezone">{timezoneName || "—"}</p>
               </div>
             </div>
           </CardContent>
