@@ -249,97 +249,66 @@ export default function ProjectDashboard() {
             </Card>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card data-testid="card-keywords-list">
-              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-                <CardTitle className="text-lg font-medium">Keywords</CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1" data-testid="button-add-keyword">
-                  <Plus className="h-4 w-4" />
-                  Add
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {keywordCount > 0 ? (
-                  <div className="space-y-2">
-                    {project.keywords?.slice(0, 10).map((keyword, index) => (
-                      <div
-                        key={keyword.id || index}
-                        className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
-                        data-testid={`row-keyword-${index}`}
-                      >
-                        <span className="text-sm font-medium">{keyword.text}</span>
-                        {keyword.category && (
-                          <Badge variant="secondary" className="text-xs">
-                            {keyword.category}
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                    {keywordCount > 10 && (
-                      <p className="pt-2 text-center text-sm text-muted-foreground">
-                        +{keywordCount - 10} more keywords
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center">
-                    <Search className="mx-auto h-8 w-8 text-muted-foreground/50" />
-                    <p className="mt-2 text-sm text-muted-foreground">No keywords added yet</p>
-                    <Button variant="outline" size="sm" className="mt-4 gap-1" data-testid="button-add-keywords-empty">
-                      <Plus className="h-4 w-4" />
-                      Add Keywords
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card data-testid="card-rankings">
-              <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-                <CardTitle className="text-lg font-medium">Rankings</CardTitle>
+          <Card data-testid="card-keywords-rankings">
+            <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-lg font-medium">Keywords & Rankings</CardTitle>
                 {latestRanking && (
                   <span className="text-xs text-muted-foreground">
                     Last checked: {new Date(latestRanking.checkedAt).toLocaleDateString()}
                   </span>
                 )}
-              </CardHeader>
-              <CardContent>
-                {isLoadingRanking ? (
-                  <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-14 w-full" />
-                    ))}
-                  </div>
-                ) : latestRanking && latestRanking.rankings.length > 0 ? (
-                  <div className="space-y-2">
-                    {latestRanking.rankings.map((ranking, index) => (
+              </div>
+              <Button variant="ghost" size="sm" className="gap-1" data-testid="button-add-keyword">
+                <Plus className="h-4 w-4" />
+                Add
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isLoadingRanking ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-14 w-full" />
+                  ))}
+                </div>
+              ) : keywordCount > 0 ? (
+                <div className="space-y-2">
+                  {project.keywords?.map((keyword, index) => {
+                    const ranking = latestRanking?.rankings.find(r => r.keywordId === keyword.id);
+                    return (
                       <div
-                        key={ranking.keywordId || index}
+                        key={keyword.id || index}
                         className="flex flex-col gap-1 rounded-lg bg-muted/50 px-3 py-2"
-                        data-testid={`row-ranking-${index}`}
+                        data-testid={`row-keyword-${index}`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium truncate flex-1 mr-2">{ranking.keyword}</span>
+                          <span className="text-sm font-medium truncate flex-1 mr-2">{keyword.text}</span>
                           <div className="flex items-center gap-2">
-                            {ranking.error ? (
-                              <Badge variant="destructive" className="gap-1" title={ranking.error}>
-                                <XCircle className="h-3 w-3" />
-                                Error
-                              </Badge>
-                            ) : ranking.found && ranking.position !== null ? (
-                              <Badge variant="default" className="gap-1">
-                                <CheckCircle2 className="h-3 w-3" />
-                                #{ranking.position}
-                              </Badge>
+                            {ranking ? (
+                              ranking.error ? (
+                                <Badge variant="destructive" className="gap-1" title={ranking.error}>
+                                  <XCircle className="h-3 w-3" />
+                                  Error
+                                </Badge>
+                              ) : ranking.found && ranking.position !== null ? (
+                                <Badge variant="default" className="gap-1">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  #{ranking.position}
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="gap-1">
+                                  <XCircle className="h-3 w-3" />
+                                  Not in top 50
+                                </Badge>
+                              )
                             ) : (
-                              <Badge variant="secondary" className="gap-1">
-                                <XCircle className="h-3 w-3" />
-                                Not in top 50
+                              <Badge variant="outline" className="text-xs">
+                                Not checked
                               </Badge>
                             )}
                           </div>
                         </div>
-                        {ranking.found && ranking.page !== null && ranking.positionOnPage !== null && (
+                        {ranking?.found && ranking.page !== null && ranking.positionOnPage !== null && (
                           <div className="text-xs text-muted-foreground">
                             Page {ranking.page}, position {ranking.positionOnPage}
                             {ranking.url && (
@@ -348,32 +317,21 @@ export default function ProjectDashboard() {
                           </div>
                         )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center">
-                    <TrendingUp className="mx-auto h-8 w-8 text-muted-foreground/50" />
-                    <p className="mt-2 text-sm text-muted-foreground">No rankings checked yet</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-4 gap-1" 
-                      data-testid="button-check-rankings-empty"
-                      onClick={() => checkRankingsMutation.mutate()}
-                      disabled={checkRankingsMutation.isPending || keywordCount === 0}
-                    >
-                      {checkRankingsMutation.isPending ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <TrendingUp className="h-4 w-4" />
-                      )}
-                      Check Rankings
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <Search className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                  <p className="mt-2 text-sm text-muted-foreground">No keywords added yet</p>
+                  <Button variant="outline" size="sm" className="mt-4 gap-1" data-testid="button-add-keywords-empty">
+                    <Plus className="h-4 w-4" />
+                    Add Keywords
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <Card data-testid="card-project-info" className="max-w-md">
             <CardHeader className="pb-4">
