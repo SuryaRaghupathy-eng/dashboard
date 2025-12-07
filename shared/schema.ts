@@ -62,7 +62,10 @@ export type ProjectFormData = z.infer<typeof projectFormSchema>;
 export const keywordRankingSchema = z.object({
   keywordId: z.string(),
   keyword: z.string(),
+  found: z.boolean(),
   position: z.number().nullable(),
+  page: z.number().nullable(),
+  positionOnPage: z.number().nullable(),
   url: z.string().nullable(),
   title: z.string().nullable(),
   checkedAt: z.string(),

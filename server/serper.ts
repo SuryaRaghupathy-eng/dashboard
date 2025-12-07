@@ -1,7 +1,6 @@
 import type { SerperOrganicResult } from "@shared/schema";
 
 const SERPER_API_URL = "https://google.serper.dev/search";
-const RESULTS_PER_PAGE = 10;
 const MAX_PAGES = 5;
 
 interface SerperResponse {
@@ -22,14 +21,12 @@ export async function fetchSerperResults(
   keyword: string,
   countryCode: string,
   page: number = 1
-): Promise<SerperOrganicResult[]> {
+): Promise<{ results: SerperOrganicResult[]; resultsOnPage: number }> {
   const apiKey = process.env.SERPER_API_KEY;
   
   if (!apiKey) {
     throw new Error("SERPER_API_KEY environment variable is not set");
   }
-
-  const start = (page - 1) * RESULTS_PER_PAGE;
 
   const response = await fetch(SERPER_API_URL, {
     method: "POST",
@@ -40,8 +37,7 @@ export async function fetchSerperResults(
     body: JSON.stringify({
       q: keyword,
       gl: countryCode.toLowerCase(),
-      num: RESULTS_PER_PAGE,
-      start: start,
+      page: page,
     }),
   });
 
@@ -52,15 +48,109 @@ export async function fetchSerperResults(
   const data: SerperResponse = await response.json();
   
   if (!data.organic || data.organic.length === 0) {
-    return [];
+    return { results: [], resultsOnPage: 0 };
   }
   
-  return data.organic.map((result, index) => ({
-    title: result.title,
-    link: result.link,
-    snippet: result.snippet,
-    position: start + index + 1,
-  }));
+  return {
+    results: data.organic.map((result) => ({
+      title: result.title,
+      link: result.link,
+      snippet: result.snippet,
+      position: result.position,
+    })),
+    resultsOnPage: data.organic.length,
+  };
+}
+
+function extractDomain(url: string): string {
+  try {
+    let normalizedUrl = url;
+    if (!normalizedUrl.startsWith("http")) {
+      normalizedUrl = "http://" + normalizedUrl;
+    }
+    const urlObj = new URL(normalizedUrl);
+    return (urlObj.hostname || "").toLowerCase().replace(/^www\./, "");
+  } catch {
+    return url.toLowerCase().replace(/^www\./, "");
+  }
+}
+
+function domainMatches(resultLink: string, targetDomain: string): boolean {
+  if (!resultLink) return false;
+  
+  const resultDomain = extractDomain(resultLink);
+  const targetDomainClean = extractDomain(targetDomain);
+  
+  return resultDomain === targetDomainClean || resultDomain.endsWith(`.${targetDomainClean}`);
+}
+
+export interface RankingSearchResult {
+  found: boolean;
+  keyword: string;
+  page: number | null;
+  positionOnPage: number | null;
+  overallPosition: number | null;
+  url: string | null;
+  title: string | null;
+  error?: string;
+}
+
+export async function trackKeywordRanking(
+  keyword: string,
+  targetDomain: string,
+  countryCode: string
+): Promise<RankingSearchResult> {
+  let totalPositionCount = 0;
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    try {
+      const { results, resultsOnPage } = await fetchSerperResults(keyword, countryCode, page);
+
+      for (let index = 0; index < results.length; index++) {
+        totalPositionCount += 1;
+        const item = results[index];
+
+        if (domainMatches(item.link, targetDomain)) {
+          return {
+            found: true,
+            keyword,
+            page,
+            positionOnPage: index + 1,
+            overallPosition: totalPositionCount,
+            url: item.link,
+            title: item.title,
+          };
+        }
+      }
+
+      if (resultsOnPage === 0) {
+        break;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error(`Error fetching page ${page} for keyword "${keyword}":`, errorMessage);
+      return {
+        found: false,
+        keyword,
+        page: null,
+        positionOnPage: null,
+        overallPosition: null,
+        url: null,
+        title: null,
+        error: `Failed at page ${page}: ${errorMessage}`,
+      };
+    }
+  }
+
+  return {
+    found: false,
+    keyword,
+    page: null,
+    positionOnPage: null,
+    overallPosition: null,
+    url: null,
+    title: null,
+  };
 }
 
 export async function fetchAllPagesResults(
@@ -72,10 +162,10 @@ export async function fetchAllPagesResults(
   
   for (let page = 1; page <= MAX_PAGES; page++) {
     try {
-      const pageResults = await fetchSerperResults(keyword, countryCode, page);
-      allResults.push(...pageResults);
+      const { results, resultsOnPage } = await fetchSerperResults(keyword, countryCode, page);
+      allResults.push(...results);
       
-      if (pageResults.length < RESULTS_PER_PAGE) {
+      if (resultsOnPage === 0) {
         break;
       }
     } catch (error) {
@@ -89,25 +179,12 @@ export async function fetchAllPagesResults(
   return { results: allResults, error: fetchError };
 }
 
-function extractDomain(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
 export function findRankingForDomain(
   results: SerperOrganicResult[],
   targetDomain: string
 ): { position: number | null; url: string | null; title: string | null } {
-  const targetDomainClean = extractDomain(targetDomain);
-  
   for (const result of results) {
-    const resultDomain = extractDomain(result.link);
-    
-    if (resultDomain === targetDomainClean || resultDomain.endsWith(`.${targetDomainClean}`)) {
+    if (domainMatches(result.link, targetDomain)) {
       return {
         position: result.position,
         url: result.link,

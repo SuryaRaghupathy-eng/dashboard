@@ -307,7 +307,7 @@ export default function ProjectDashboard() {
                 {isLoadingRanking ? (
                   <div className="space-y-2">
                     {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-10 w-full" />
+                      <Skeleton key={i} className="h-14 w-full" />
                     ))}
                   </div>
                 ) : latestRanking && latestRanking.rankings.length > 0 ? (
@@ -315,28 +315,38 @@ export default function ProjectDashboard() {
                     {latestRanking.rankings.map((ranking, index) => (
                       <div
                         key={ranking.keywordId || index}
-                        className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
+                        className="flex flex-col gap-1 rounded-lg bg-muted/50 px-3 py-2"
                         data-testid={`row-ranking-${index}`}
                       >
-                        <span className="text-sm font-medium truncate flex-1 mr-2">{ranking.keyword}</span>
-                        <div className="flex items-center gap-2">
-                          {ranking.error ? (
-                            <Badge variant="destructive" className="gap-1" title={ranking.error}>
-                              <XCircle className="h-3 w-3" />
-                              Error
-                            </Badge>
-                          ) : ranking.position !== null ? (
-                            <Badge variant="default" className="gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
-                              #{ranking.position}
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="gap-1">
-                              <XCircle className="h-3 w-3" />
-                              Not in top 50
-                            </Badge>
-                          )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium truncate flex-1 mr-2">{ranking.keyword}</span>
+                          <div className="flex items-center gap-2">
+                            {ranking.error ? (
+                              <Badge variant="destructive" className="gap-1" title={ranking.error}>
+                                <XCircle className="h-3 w-3" />
+                                Error
+                              </Badge>
+                            ) : ranking.found && ranking.position !== null ? (
+                              <Badge variant="default" className="gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                #{ranking.position}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="gap-1">
+                                <XCircle className="h-3 w-3" />
+                                Not in top 50
+                              </Badge>
+                            )}
+                          </div>
                         </div>
+                        {ranking.found && ranking.page !== null && ranking.positionOnPage !== null && (
+                          <div className="text-xs text-muted-foreground">
+                            Page {ranking.page}, position {ranking.positionOnPage}
+                            {ranking.url && (
+                              <span> - <a href={ranking.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{getDomainFromUrl(ranking.url)}</a></span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

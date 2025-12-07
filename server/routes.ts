@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema, type KeywordRanking } from "@shared/schema";
 import { z } from "zod";
-import { fetchAllPagesResults, findRankingForDomain } from "./serper";
+import { trackKeywordRanking } from "./serper";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -130,17 +130,19 @@ export async function registerRoutes(
 
       for (const keyword of project.keywords) {
         try {
-          const { results, error: fetchError } = await fetchAllPagesResults(keyword.text, project.country);
-          const ranking = findRankingForDomain(results, project.websiteUrl);
+          const result = await trackKeywordRanking(keyword.text, project.websiteUrl, project.country);
           
           rankings.push({
             keywordId: keyword.id,
             keyword: keyword.text,
-            position: ranking.position,
-            url: ranking.url,
-            title: ranking.title,
+            found: result.found,
+            position: result.overallPosition,
+            page: result.page,
+            positionOnPage: result.positionOnPage,
+            url: result.url,
+            title: result.title,
             checkedAt,
-            error: fetchError,
+            error: result.error,
           });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -148,7 +150,10 @@ export async function registerRoutes(
           rankings.push({
             keywordId: keyword.id,
             keyword: keyword.text,
+            found: false,
             position: null,
+            page: null,
+            positionOnPage: null,
             url: null,
             title: null,
             checkedAt,
