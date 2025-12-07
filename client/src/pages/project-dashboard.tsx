@@ -173,6 +173,26 @@ export default function ProjectDashboard() {
 
   const keywordCount = project.keywords?.length || 0;
 
+  // Calculate ranking statistics
+  const rankingStats = (() => {
+    if (!latestRanking?.rankings) {
+      return { avgPosition: null, top3: 0, top10: 0, top20: 0 };
+    }
+    
+    const rankedKeywords = latestRanking.rankings.filter(r => r.found && r.position !== null);
+    if (rankedKeywords.length === 0) {
+      return { avgPosition: null, top3: 0, top10: 0, top20: 0 };
+    }
+    
+    const positions = rankedKeywords.map(r => r.position as number);
+    const avgPosition = positions.reduce((a, b) => a + b, 0) / positions.length;
+    const top3 = positions.filter(p => p <= 3).length;
+    const top10 = positions.filter(p => p <= 10).length;
+    const top20 = positions.filter(p => p <= 20).length;
+    
+    return { avgPosition: Math.round(avgPosition * 10) / 10, top3, top10, top20 };
+  })();
+
   return (
     <div className="flex min-h-screen flex-col bg-background" data-testid="page-project-dashboard">
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -247,16 +267,16 @@ export default function ProjectDashboard() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <Card data-testid="card-keywords">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                    <Search className="h-6 w-6 text-primary" />
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Search className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Keywords</p>
-                    <p className="text-2xl font-semibold" data-testid="text-keyword-count">
+                    <p className="text-xs text-muted-foreground">Keywords</p>
+                    <p className="text-xl font-semibold" data-testid="text-keyword-count">
                       {keywordCount}
                     </p>
                   </div>
@@ -264,15 +284,79 @@ export default function ProjectDashboard() {
               </CardContent>
             </Card>
 
-            <Card data-testid="card-location">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-chart-4/10">
-                    <MapPin className="h-6 w-6 text-chart-4" />
+            <Card data-testid="card-avg-position">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-chart-1/10">
+                    <TrendingUp className="h-5 w-5 text-chart-1" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Location</p>
-                    <p className="text-lg font-semibold truncate" data-testid="text-country">
+                    <p className="text-xs text-muted-foreground">Avg Position</p>
+                    <p className="text-xl font-semibold" data-testid="text-avg-position">
+                      {rankingStats.avgPosition !== null ? `#${rankingStats.avgPosition}` : '-'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-top3">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+                    <span className="text-sm font-bold text-green-600 dark:text-green-400">T3</span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Top 3</p>
+                    <p className="text-xl font-semibold" data-testid="text-top3">
+                      {rankingStats.top3}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-top10">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400">T10</span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Top 10</p>
+                    <p className="text-xl font-semibold" data-testid="text-top10">
+                      {rankingStats.top10}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-top20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
+                    <span className="text-sm font-bold text-orange-600 dark:text-orange-400">T20</span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Top 20</p>
+                    <p className="text-xl font-semibold" data-testid="text-top20">
+                      {rankingStats.top20}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-location">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-chart-4/10">
+                    <MapPin className="h-5 w-5 text-chart-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Location</p>
+                    <p className="text-sm font-semibold truncate" data-testid="text-country">
                       {getCountryName(project.country)}
                     </p>
                   </div>
