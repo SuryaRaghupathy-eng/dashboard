@@ -255,7 +255,7 @@ export default function ProjectDashboard() {
                 <CardTitle className="text-lg font-medium">Keywords & Rankings</CardTitle>
                 {latestRanking && (
                   <span className="text-xs text-muted-foreground">
-                    Last checked: {new Date(latestRanking.checkedAt).toLocaleDateString()}
+                    Last checked: {new Date(latestRanking.checkedAt).toLocaleString()}
                   </span>
                 )}
               </div>
