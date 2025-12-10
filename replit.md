@@ -133,13 +133,25 @@ Preferred communication style: Simple, everyday language.
 ### Automatic Ranking Scheduler
 
 **Background Processing**
-- Automatic keyword ranking checks run every 5 minutes
+- Automatic keyword ranking checks run at configurable daily intervals
 - Scheduler starts automatically when the server boots
 - Re-entrancy protection prevents overlapping execution cycles
 - Uses the Serper API for Google search ranking data
+
+**Schedule Options (Daily-focused)**
+- Every day (1 day)
+- Every 2 days
+- Every 3 days
+- Every 5 days
+- Every 7 days
 
 **Scheduler Features**
 - Iterates through all projects and their keywords
 - Saves ranking results to storage for historical tracking
 - Logs all scheduler activity with timestamps
 - Graceful error handling per-keyword to prevent full batch failures
+
+**Dashboard Features**
+- Date picker for comparing rankings over time (react-day-picker)
+- Quick date range presets (Last 7 days, Last 30 days)
+- Position change indicators showing improvement/decline between selected dates
