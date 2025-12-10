@@ -5,6 +5,8 @@ import type { KeywordRanking, Settings } from "@shared/schema";
 let schedulerInterval: NodeJS.Timeout | null = null;
 let isRunning = false;
 let currentIntervalMinutes = 5;
+let lastCheckTime: Date | null = null;
+let schedulerStartTime: Date | null = null;
 
 function logScheduler(message: string): void {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -23,6 +25,7 @@ async function checkAllProjectRankings(): Promise<void> {
   }
 
   isRunning = true;
+  lastCheckTime = new Date();
   try {
     const projects = await storage.getProjects();
     
@@ -112,6 +115,7 @@ function startSchedulerWithInterval(intervalMinutes: number): void {
   }
 
   currentIntervalMinutes = intervalMinutes;
+  schedulerStartTime = new Date();
   const intervalMs = intervalMinutes * 60 * 1000;
 
   logScheduler(`Starting automatic ranking scheduler (every ${intervalMinutes} minutes)`);
@@ -150,4 +154,33 @@ export function runImmediateCheck(): Promise<void> {
 
 export function getCurrentInterval(): number {
   return currentIntervalMinutes;
+}
+
+export function getSchedulerStatus(): {
+  isRunning: boolean;
+  intervalMinutes: number;
+  lastCheckTime: string | null;
+  nextCheckTime: string | null;
+} {
+  let nextCheckTime: string | null = null;
+  
+  if (schedulerStartTime && schedulerInterval) {
+    const intervalMs = currentIntervalMinutes * 60 * 1000;
+    const now = new Date().getTime();
+    const startTime = schedulerStartTime.getTime();
+    
+    // Calculate how many intervals have passed since start
+    const elapsed = now - startTime;
+    const intervalsPassed = Math.floor(elapsed / intervalMs);
+    const nextCheckMs = startTime + ((intervalsPassed + 1) * intervalMs);
+    
+    nextCheckTime = new Date(nextCheckMs).toISOString();
+  }
+  
+  return {
+    isRunning: !!schedulerInterval,
+    intervalMinutes: currentIntervalMinutes,
+    lastCheckTime: lastCheckTime?.toISOString() || null,
+    nextCheckTime,
+  };
 }

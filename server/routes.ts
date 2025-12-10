@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertProjectSchema, settingsSchema, type KeywordRanking } from "@shared/schema";
 import { z } from "zod";
 import { trackKeywordRanking } from "./serper";
+import { getSchedulerStatus } from "./scheduler";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -198,6 +199,15 @@ export async function registerRoutes(
       res.json(updatedSettings);
     } catch (error) {
       res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  app.get("/api/scheduler/status", (_req, res) => {
+    try {
+      const status = getSchedulerStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch scheduler status" });
     }
   });
 

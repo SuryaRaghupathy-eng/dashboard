@@ -199,6 +199,18 @@ export default function ProjectDashboard() {
     queryKey: ["/api/settings"],
   });
 
+  interface SchedulerStatus {
+    isRunning: boolean;
+    intervalMinutes: number;
+    lastCheckTime: string | null;
+    nextCheckTime: string | null;
+  }
+
+  const { data: schedulerStatus } = useQuery<SchedulerStatus>({
+    queryKey: ["/api/scheduler/status"],
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
+
   const updateSettingsMutation = useMutation({
     mutationFn: async (newSettings: Partial<SettingsType>) => {
       const response = await apiRequest("PUT", "/api/settings", newSettings);
@@ -320,7 +332,7 @@ export default function ProjectDashboard() {
                     Settings
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-72" align="end">
+                <PopoverContent className="w-80" align="end">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <h4 className="font-medium leading-none">Scheduler Settings</h4>
@@ -351,6 +363,33 @@ export default function ProjectDashboard() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <Separator />
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Schedule Status</h4>
+                      <div className="space-y-1 text-sm">
+                        {schedulerStatus?.lastCheckTime && (
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground">Last check:</span>
+                            <span data-testid="text-last-check-time">
+                              {new Date(schedulerStatus.lastCheckTime).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {schedulerStatus?.nextCheckTime && (
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground">Next check:</span>
+                            <span className="font-medium text-primary" data-testid="text-next-check-time">
+                              {new Date(schedulerStatus.nextCheckTime).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        {!schedulerStatus?.isRunning && (
+                          <p className="text-xs text-muted-foreground">
+                            Scheduler not running. Restart the server to enable automatic checks.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </PopoverContent>
