@@ -26,7 +26,12 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Project, RankingResult, Settings as SettingsType } from "@shared/schema";
-import { countries, SCHEDULE_INTERVALS } from "@shared/schema";
+import { countries, SCHEDULE_INTERVALS, SCHEDULE_INTERVAL_LABELS, ScheduleInterval } from "@shared/schema";
+import { DateRange } from "react-day-picker";
+import { format, subDays, isWithinInterval, parseISO } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { useState } from "react";
 import {
   Popover,
   PopoverContent,
@@ -107,6 +112,10 @@ function LoadingSkeleton() {
 export default function ProjectDashboard() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 7),
+    to: new Date(),
+  });
 
   const { data: project, isLoading } = useQuery<Project>({
     queryKey: ["/api/projects", id],
@@ -124,18 +133,36 @@ export default function ProjectDashboard() {
     refetchInterval: 30000,
   });
 
-  // Get the previous ranking to compare position changes
-  const previousRanking = allRankings && allRankings.length >= 2 
-    ? allRankings[allRankings.length - 2] 
+  // Filter rankings by date range for comparison
+  const filteredRankings = allRankings?.filter((ranking) => {
+    if (!dateRange?.from) return true;
+    const rankingDate = parseISO(ranking.checkedAt);
+    return isWithinInterval(rankingDate, {
+      start: dateRange.from,
+      end: dateRange.to || new Date(),
+    });
+  }) || [];
+
+  // Get the oldest ranking within the date range for comparison (start of range)
+  const comparisonRanking = filteredRankings.length >= 2 
+    ? filteredRankings[0] 
+    : null;
+  
+  // Get the newest ranking within the date range for displaying current position
+  const currentRankingInRange = filteredRankings.length >= 1
+    ? filteredRankings[filteredRankings.length - 1]
     : null;
 
-  // Helper function to get position change
+  // Use the filtered current ranking for display if we have a date range set, otherwise use latest
+  const displayRanking = dateRange?.from && currentRankingInRange ? currentRankingInRange : latestRanking;
+
+  // Helper function to get position change comparing current to oldest in date range
   const getPositionChange = (keywordId: string, currentPosition: number | null): { change: number | null; direction: 'up' | 'down' | 'same' | null } => {
-    if (!previousRanking || currentPosition === null) {
+    if (!comparisonRanking || currentPosition === null) {
       return { change: null, direction: null };
     }
     
-    const prevRanking = previousRanking.rankings.find(r => r.keywordId === keywordId);
+    const prevRanking = comparisonRanking.rankings.find(r => r.keywordId === keywordId);
     if (!prevRanking || prevRanking.position === null) {
       return { change: null, direction: null };
     }
@@ -179,9 +206,10 @@ export default function ProjectDashboard() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      const intervalLabel = SCHEDULE_INTERVAL_LABELS[data.scheduleInterval as ScheduleInterval] || `every ${data.scheduleInterval} days`;
       toast({
         title: "Settings updated",
-        description: `Rankings will now be checked every ${data.scheduleInterval} minutes.`,
+        description: `Rankings will now be checked ${intervalLabel.toLowerCase()}.`,
       });
     },
     onError: (error: Error) => {
@@ -306,9 +334,9 @@ export default function ProjectDashboard() {
                         Check Interval
                       </Label>
                       <Select
-                        value={settings?.scheduleInterval?.toString() || "5"}
+                        value={settings?.scheduleInterval?.toString() || "1"}
                         onValueChange={(value) => {
-                          updateSettingsMutation.mutate({ scheduleInterval: parseInt(value) as 5 | 10 | 15 });
+                          updateSettingsMutation.mutate({ scheduleInterval: parseInt(value) as ScheduleInterval });
                         }}
                         disabled={updateSettingsMutation.isPending}
                       >
@@ -318,7 +346,7 @@ export default function ProjectDashboard() {
                         <SelectContent>
                           {SCHEDULE_INTERVALS.map((interval) => (
                             <SelectItem key={interval} value={interval.toString()} data-testid={`option-interval-${interval}`}>
-                              Every {interval} minutes
+                              {SCHEDULE_INTERVAL_LABELS[interval]}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -443,19 +471,72 @@ export default function ProjectDashboard() {
           </div>
 
           <Card data-testid="card-keywords-rankings">
-            <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
-              <div className="flex items-center gap-3">
+            <CardHeader className="flex flex-col gap-4 pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
                 <CardTitle className="text-lg font-medium">Keywords & Rankings</CardTitle>
-                {latestRanking && (
+                {displayRanking && (
                   <span className="text-xs text-muted-foreground">
-                    Last checked: {new Date(latestRanking.checkedAt).toLocaleString()}
+                    {comparisonRanking ? "Comparing: " : "Last checked: "}
+                    {new Date(displayRanking.checkedAt).toLocaleString()}
                   </span>
                 )}
               </div>
-              <Button variant="ghost" size="sm" className="gap-1" data-testid="button-add-keyword">
-                <Plus className="h-4 w-4" />
-                Add
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2" data-testid="button-date-range">
+                      <CalendarIcon className="h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "MMM d, yyyy")
+                        )
+                      ) : (
+                        "Compare dates"
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <div className="p-3 border-b">
+                      <p className="text-sm font-medium">Compare Rankings</p>
+                      <p className="text-xs text-muted-foreground">Select a date range to compare ranking changes</p>
+                    </div>
+                    <Calendar
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={1}
+                      disabled={{ after: new Date() }}
+                    />
+                    <div className="flex gap-2 p-3 border-t">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setDateRange({ from: subDays(new Date(), 7), to: new Date() })}
+                        data-testid="button-last-7-days"
+                      >
+                        Last 7 days
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setDateRange({ from: subDays(new Date(), 30), to: new Date() })}
+                        data-testid="button-last-30-days"
+                      >
+                        Last 30 days
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button variant="ghost" size="sm" className="gap-1" data-testid="button-add-keyword">
+                  <Plus className="h-4 w-4" />
+                  Add
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoadingRanking ? (
@@ -467,7 +548,7 @@ export default function ProjectDashboard() {
               ) : keywordCount > 0 ? (
                 <div className="space-y-2">
                   {project.keywords?.map((keyword, index) => {
-                    const ranking = latestRanking?.rankings.find(r => r.keywordId === keyword.id);
+                    const ranking = displayRanking?.rankings.find(r => r.keywordId === keyword.id);
                     return (
                       <div
                         key={keyword.id || index}

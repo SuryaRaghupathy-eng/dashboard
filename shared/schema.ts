@@ -74,8 +74,15 @@ export const keywordRankingSchema = z.object({
 
 export type KeywordRanking = z.infer<typeof keywordRankingSchema>;
 
-export const SCHEDULE_INTERVALS = [5, 10, 15] as const;
+export const SCHEDULE_INTERVALS = [1, 7, 14, 30] as const;
 export type ScheduleInterval = typeof SCHEDULE_INTERVALS[number];
+
+export const SCHEDULE_INTERVAL_LABELS: Record<ScheduleInterval, string> = {
+  1: "Once a day",
+  7: "Once a week",
+  14: "Every 2 weeks",
+  30: "Once a month",
+};
 
 export const settingsSchema = z.object({
   scheduleInterval: z.number().refine((val): val is ScheduleInterval => 
