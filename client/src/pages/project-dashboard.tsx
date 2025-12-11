@@ -25,7 +25,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Project, RankingResult, Settings as SettingsType } from "@shared/schema";
+import type { Project, RankingResult } from "@shared/schema";
 import { countries, SCHEDULE_INTERVALS, SCHEDULE_INTERVAL_LABELS, ScheduleInterval } from "@shared/schema";
 import { DateRange } from "react-day-picker";
 import { format, subDays, isWithinInterval, parseISO } from "date-fns";
@@ -203,10 +203,6 @@ export default function ProjectDashboard() {
     },
   });
 
-  const { data: settings } = useQuery<SettingsType>({
-    queryKey: ["/api/settings"],
-  });
-
   interface SchedulerStatus {
     isRunning: boolean;
     intervalMinutes: number;
@@ -219,17 +215,17 @@ export default function ProjectDashboard() {
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (newSettings: Partial<SettingsType>) => {
-      const response = await apiRequest("PUT", "/api/settings", newSettings);
+  const updateProjectIntervalMutation = useMutation({
+    mutationFn: async (scheduleInterval: string) => {
+      const response = await apiRequest("PUT", `/api/projects/${id}`, { scheduleInterval });
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      const intervalLabel = SCHEDULE_INTERVAL_LABELS[data.scheduleInterval as ScheduleInterval] || `every ${data.scheduleInterval} days`;
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", id] });
+      const intervalLabel = SCHEDULE_INTERVAL_LABELS[parseInt(data.scheduleInterval) as ScheduleInterval] || `every ${data.scheduleInterval} days`;
       toast({
         title: "Settings updated",
-        description: `Rankings will now be checked ${intervalLabel.toLowerCase()}.`,
+        description: `Rankings for this project will now be checked ${intervalLabel.toLowerCase()}.`,
       });
     },
     onError: (error: Error) => {
@@ -354,11 +350,11 @@ export default function ProjectDashboard() {
                         Check Interval
                       </Label>
                       <Select
-                        value={settings?.scheduleInterval?.toString() || "1"}
+                        value={project?.scheduleInterval || "5"}
                         onValueChange={(value) => {
-                          updateSettingsMutation.mutate({ scheduleInterval: parseInt(value) as ScheduleInterval });
+                          updateProjectIntervalMutation.mutate(value);
                         }}
-                        disabled={updateSettingsMutation.isPending}
+                        disabled={updateProjectIntervalMutation.isPending}
                       >
                         <SelectTrigger id="schedule-interval" data-testid="select-schedule-interval">
                           <SelectValue placeholder="Select interval" />

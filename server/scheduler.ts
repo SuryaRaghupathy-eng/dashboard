@@ -1,12 +1,16 @@
 import { storage } from "./storage";
 import { trackKeywordRanking } from "./serper";
-import type { KeywordRanking, Settings } from "@shared/schema";
+import type { KeywordRanking, Project } from "@shared/schema";
 
-let schedulerInterval: NodeJS.Timeout | null = null;
+interface ProjectScheduler {
+  intervalId: NodeJS.Timeout | null;
+  intervalDays: number;
+  lastCheckTime: Date | null;
+  startTime: Date | null;
+}
+
+const projectSchedulers: Map<string, ProjectScheduler> = new Map();
 let isRunning = false;
-let currentIntervalMinutes = 5;
-let lastCheckTime: Date | null = null;
-let schedulerStartTime: Date | null = null;
 
 function logScheduler(message: string): void {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -18,14 +22,152 @@ function logScheduler(message: string): void {
   console.log(`${formattedTime} [scheduler] ${message}`);
 }
 
-async function checkAllProjectRankings(): Promise<void> {
+async function checkProjectRankings(project: Project): Promise<void> {
+  if (!project.keywords || project.keywords.length === 0) {
+    logScheduler(`Skipping project "${project.name}" - no keywords`);
+    return;
+  }
+
+  try {
+    const rankings: KeywordRanking[] = [];
+    const checkedAt = new Date().toISOString();
+
+    logScheduler(`Checking ${project.keywords.length} keyword(s) for project "${project.name}"`);
+
+    for (const keyword of project.keywords) {
+      try {
+        const result = await trackKeywordRanking(
+          keyword.text,
+          project.websiteUrl,
+          project.country
+        );
+
+        rankings.push({
+          keywordId: keyword.id,
+          keyword: keyword.text,
+          found: result.found,
+          position: result.overallPosition,
+          page: result.page,
+          positionOnPage: result.positionOnPage,
+          url: result.url,
+          title: result.title,
+          checkedAt,
+          error: result.error,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        logScheduler(`Error checking keyword "${keyword.text}": ${errorMessage}`);
+        rankings.push({
+          keywordId: keyword.id,
+          keyword: keyword.text,
+          found: false,
+          position: null,
+          page: null,
+          positionOnPage: null,
+          url: null,
+          title: null,
+          checkedAt,
+          error: errorMessage,
+        });
+      }
+    }
+
+    await storage.saveRanking({
+      projectId: project.id,
+      rankings,
+      checkedAt,
+    });
+
+    const scheduler = projectSchedulers.get(project.id);
+    if (scheduler) {
+      scheduler.lastCheckTime = new Date();
+    }
+
+    logScheduler(`Completed ranking check for project "${project.name}" - ${rankings.length} keywords checked`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    logScheduler(`Error processing project "${project.name}": ${errorMessage}`);
+  }
+}
+
+function startProjectScheduler(project: Project): void {
+  const projectId = project.id;
+  const intervalDays = parseInt(project.scheduleInterval || "5", 10);
+  
+  const existingScheduler = projectSchedulers.get(projectId);
+  if (existingScheduler?.intervalId) {
+    clearInterval(existingScheduler.intervalId);
+  }
+
+  const intervalMs = intervalDays * 24 * 60 * 60 * 1000;
+  const intervalLabel = intervalDays === 1 ? "1 day" : `${intervalDays} days`;
+  
+  logScheduler(`Setting up scheduler for project "${project.name}" (every ${intervalLabel})`);
+
+  const intervalId = setInterval(async () => {
+    const currentProject = await storage.getProject(projectId);
+    if (currentProject) {
+      await checkProjectRankings(currentProject);
+    }
+  }, intervalMs);
+
+  projectSchedulers.set(projectId, {
+    intervalId,
+    intervalDays,
+    lastCheckTime: null,
+    startTime: new Date(),
+  });
+}
+
+function stopProjectScheduler(projectId: string): void {
+  const scheduler = projectSchedulers.get(projectId);
+  if (scheduler?.intervalId) {
+    clearInterval(scheduler.intervalId);
+    projectSchedulers.delete(projectId);
+    logScheduler(`Stopped scheduler for project ${projectId}`);
+  }
+}
+
+export async function startScheduler(): Promise<void> {
+  const projects = await storage.getProjects();
+  
+  if (projects.length === 0) {
+    logScheduler("No projects found - scheduler will start when projects are created");
+    return;
+  }
+
+  for (const project of projects) {
+    startProjectScheduler(project);
+  }
+  
+  logScheduler(`Scheduler started for ${projects.length} project(s)`);
+}
+
+export function stopScheduler(): void {
+  Array.from(projectSchedulers.keys()).forEach(projectId => {
+    stopProjectScheduler(projectId);
+  });
+  logScheduler("All project schedulers stopped");
+}
+
+export async function updateProjectScheduler(projectId: string): Promise<void> {
+  const project = await storage.getProject(projectId);
+  if (project) {
+    startProjectScheduler(project);
+  }
+}
+
+export async function removeProjectScheduler(projectId: string): Promise<void> {
+  stopProjectScheduler(projectId);
+}
+
+export async function runImmediateCheck(): Promise<void> {
   if (isRunning) {
-    logScheduler("Previous ranking check still in progress, skipping this cycle");
+    logScheduler("Previous ranking check still in progress, skipping");
     return;
   }
 
   isRunning = true;
-  lastCheckTime = new Date();
   try {
     const projects = await storage.getProjects();
     
@@ -34,129 +176,16 @@ async function checkAllProjectRankings(): Promise<void> {
       return;
     }
 
-    logScheduler(`Starting automatic ranking check for ${projects.length} project(s)`);
+    logScheduler(`Starting immediate ranking check for ${projects.length} project(s)`);
 
     for (const project of projects) {
-      if (!project.keywords || project.keywords.length === 0) {
-        logScheduler(`Skipping project "${project.name}" - no keywords`);
-        continue;
-      }
-
-      try {
-        const rankings: KeywordRanking[] = [];
-        const checkedAt = new Date().toISOString();
-
-        logScheduler(`Checking ${project.keywords.length} keyword(s) for project "${project.name}"`);
-
-        for (const keyword of project.keywords) {
-          try {
-            const result = await trackKeywordRanking(
-              keyword.text,
-              project.websiteUrl,
-              project.country
-            );
-
-            rankings.push({
-              keywordId: keyword.id,
-              keyword: keyword.text,
-              found: result.found,
-              position: result.overallPosition,
-              page: result.page,
-              positionOnPage: result.positionOnPage,
-              url: result.url,
-              title: result.title,
-              checkedAt,
-              error: result.error,
-            });
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Unknown error";
-            logScheduler(`Error checking keyword "${keyword.text}": ${errorMessage}`);
-            rankings.push({
-              keywordId: keyword.id,
-              keyword: keyword.text,
-              found: false,
-              position: null,
-              page: null,
-              positionOnPage: null,
-              url: null,
-              title: null,
-              checkedAt,
-              error: errorMessage,
-            });
-          }
-        }
-
-        await storage.saveRanking({
-          projectId: project.id,
-          rankings,
-          checkedAt,
-        });
-
-        logScheduler(`Completed ranking check for project "${project.name}" - ${rankings.length} keywords checked`);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        logScheduler(`Error processing project "${project.name}": ${errorMessage}`);
-      }
+      await checkProjectRankings(project);
     }
 
-    logScheduler("Automatic ranking check completed");
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    logScheduler(`Scheduler error: ${errorMessage}`);
+    logScheduler("Immediate ranking check completed");
   } finally {
     isRunning = false;
   }
-}
-
-function startSchedulerWithInterval(intervalDays: number): void {
-  if (schedulerInterval) {
-    clearInterval(schedulerInterval);
-    schedulerInterval = null;
-  }
-
-  currentIntervalMinutes = intervalDays * 24 * 60; // Convert days to minutes
-  schedulerStartTime = new Date();
-  const intervalMs = currentIntervalMinutes * 60 * 1000;
-
-  const intervalLabel = intervalDays === 1 ? "1 day" : `${intervalDays} days`;
-  logScheduler(`Starting automatic ranking scheduler (every ${intervalLabel})`);
-  
-  schedulerInterval = setInterval(checkAllProjectRankings, intervalMs);
-  
-  logScheduler(`Scheduler started - first automatic check in ${intervalLabel}`);
-}
-
-function handleSettingsChange(newSettings: Settings): void {
-  const newIntervalMinutes = newSettings.scheduleInterval * 24 * 60;
-  if (newIntervalMinutes !== currentIntervalMinutes) {
-    const intervalLabel = newSettings.scheduleInterval === 1 ? "1 day" : `${newSettings.scheduleInterval} days`;
-    logScheduler(`Schedule interval changed to ${intervalLabel}, restarting scheduler`);
-    startSchedulerWithInterval(newSettings.scheduleInterval);
-  }
-}
-
-storage.setOnSettingsChange(handleSettingsChange);
-
-export async function startScheduler(): Promise<void> {
-  const settings = await storage.getSettings();
-  startSchedulerWithInterval(settings.scheduleInterval);
-}
-
-export function stopScheduler(): void {
-  if (schedulerInterval) {
-    clearInterval(schedulerInterval);
-    schedulerInterval = null;
-    logScheduler("Scheduler stopped");
-  }
-}
-
-export function runImmediateCheck(): Promise<void> {
-  logScheduler("Running immediate ranking check");
-  return checkAllProjectRankings();
-}
-
-export function getCurrentInterval(): number {
-  return currentIntervalMinutes;
 }
 
 export function getSchedulerStatus(): {
@@ -165,24 +194,42 @@ export function getSchedulerStatus(): {
   lastCheckTime: string | null;
   nextCheckTime: string | null;
 } {
+  let lastCheckTime: Date | null = null;
+  let totalIntervalMinutes = 0;
+  let projectCount = 0;
+
+  const schedulers = Array.from(projectSchedulers.values());
+  
+  schedulers.forEach(scheduler => {
+    projectCount++;
+    totalIntervalMinutes += scheduler.intervalDays * 24 * 60;
+    if (scheduler.lastCheckTime && (!lastCheckTime || scheduler.lastCheckTime > lastCheckTime)) {
+      lastCheckTime = scheduler.lastCheckTime;
+    }
+  });
+
+  const avgIntervalMinutes = projectCount > 0 ? totalIntervalMinutes / projectCount : 5 * 24 * 60;
+
   let nextCheckTime: string | null = null;
-  
-  if (schedulerStartTime && schedulerInterval) {
-    const intervalMs = currentIntervalMinutes * 60 * 1000;
-    const now = new Date().getTime();
-    const startTime = schedulerStartTime.getTime();
-    
-    // Calculate how many intervals have passed since start
-    const elapsed = now - startTime;
-    const intervalsPassed = Math.floor(elapsed / intervalMs);
-    const nextCheckMs = startTime + ((intervalsPassed + 1) * intervalMs);
-    
-    nextCheckTime = new Date(nextCheckMs).toISOString();
-  }
-  
+  schedulers.forEach(scheduler => {
+    if (scheduler.startTime && scheduler.intervalId) {
+      const intervalMs = scheduler.intervalDays * 24 * 60 * 60 * 1000;
+      const now = new Date().getTime();
+      const startTime = scheduler.startTime.getTime();
+      const elapsed = now - startTime;
+      const intervalsPassed = Math.floor(elapsed / intervalMs);
+      const nextMs = startTime + ((intervalsPassed + 1) * intervalMs);
+      const projectNextCheck = new Date(nextMs).toISOString();
+      
+      if (!nextCheckTime || projectNextCheck < nextCheckTime) {
+        nextCheckTime = projectNextCheck;
+      }
+    }
+  });
+
   return {
-    isRunning: !!schedulerInterval,
-    intervalMinutes: currentIntervalMinutes,
+    isRunning: projectSchedulers.size > 0,
+    intervalMinutes: avgIntervalMinutes,
     lastCheckTime: lastCheckTime?.toISOString() || null,
     nextCheckTime,
   };

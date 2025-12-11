@@ -40,6 +40,7 @@ export const projects = pgTable("projects", {
   keywords: jsonb("keywords").$type<Keyword[]>().notNull().default([]),
   competitors: jsonb("competitors").$type<Competitor[]>().notNull().default([]),
   status: text("status").notNull().default("draft"),
+  scheduleInterval: text("schedule_interval").$type<string>().notNull().default("5"),
 });
 
 export const insertProjectSchema = createInsertSchema(projects).omit({

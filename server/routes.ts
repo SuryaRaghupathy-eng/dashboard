@@ -1,10 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, settingsSchema, type KeywordRanking } from "@shared/schema";
+import { insertProjectSchema, settingsSchema, type KeywordRanking, SCHEDULE_INTERVALS } from "@shared/schema";
 import { z } from "zod";
 import { trackKeywordRanking } from "./serper";
-import { getSchedulerStatus } from "./scheduler";
+import { getSchedulerStatus, updateProjectScheduler, removeProjectScheduler } from "./scheduler";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -43,6 +43,7 @@ export async function registerRoutes(
       }
 
       const project = await storage.createProject(parseResult.data);
+      await updateProjectScheduler(project.id);
       res.status(201).json(project);
     } catch (error) {
       res.status(500).json({ error: "Failed to create project" });
@@ -66,7 +67,55 @@ export async function registerRoutes(
         });
       }
 
+      if (parseResult.data.scheduleInterval) {
+        const intervalNum = parseInt(parseResult.data.scheduleInterval, 10);
+        if (!SCHEDULE_INTERVALS.includes(intervalNum as any)) {
+          return res.status(400).json({ 
+            error: "Invalid schedule interval. Must be one of: " + SCHEDULE_INTERVALS.join(", ") 
+          });
+        }
+      }
+
       const updatedProject = await storage.updateProject(id, parseResult.data);
+      if (parseResult.data.scheduleInterval) {
+        await updateProjectScheduler(id);
+      }
+      res.json(updatedProject);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update project" });
+    }
+  });
+
+  app.put("/api/projects/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existingProject = await storage.getProject(id);
+      if (!existingProject) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      const partialSchema = insertProjectSchema.partial();
+      const parseResult = partialSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: parseResult.error.issues,
+        });
+      }
+
+      if (parseResult.data.scheduleInterval) {
+        const intervalNum = parseInt(parseResult.data.scheduleInterval, 10);
+        if (!SCHEDULE_INTERVALS.includes(intervalNum as any)) {
+          return res.status(400).json({ 
+            error: "Invalid schedule interval. Must be one of: " + SCHEDULE_INTERVALS.join(", ") 
+          });
+        }
+      }
+
+      const updatedProject = await storage.updateProject(id, parseResult.data);
+      if (parseResult.data.scheduleInterval) {
+        await updateProjectScheduler(id);
+      }
       res.json(updatedProject);
     } catch (error) {
       res.status(500).json({ error: "Failed to update project" });
@@ -80,6 +129,7 @@ export async function registerRoutes(
       if (!deleted) {
         return res.status(404).json({ error: "Project not found" });
       }
+      await removeProjectScheduler(id);
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete project" });

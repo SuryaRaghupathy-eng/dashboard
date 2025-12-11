@@ -80,6 +80,7 @@ export class MemStorage implements IStorage {
       keywords: insertProject.keywords || [],
       competitors: insertProject.competitors || [],
       status: insertProject.status || "draft",
+      scheduleInterval: insertProject.scheduleInterval || "5",
     };
     this.projects.set(id, project);
     return project;
