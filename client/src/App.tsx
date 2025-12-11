@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import ProjectsList from "@/pages/projects-list";
 import NewProject from "@/pages/new-project";
 import ProjectDashboard from "@/pages/project-dashboard";
+import ProjectKeywords from "@/pages/project-keywords";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/" component={ProjectsList} />
       <Route path="/new" component={NewProject} />
       <Route path="/projects/:id" component={ProjectDashboard} />
+      <Route path="/projects/:id/keywords" component={ProjectKeywords} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -583,10 +583,12 @@ export default function ProjectDashboard() {
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button variant="ghost" size="sm" className="gap-1" data-testid="button-add-keyword">
-                  <Plus className="h-4 w-4" />
-                  Add
-                </Button>
+                <Link href={`/projects/${id}/keywords`}>
+                  <Button variant="ghost" size="sm" className="gap-1" data-testid="button-add-keyword">
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </Button>
+                </Link>
               </div>
             </CardHeader>
             <CardContent>
@@ -678,10 +680,12 @@ export default function ProjectDashboard() {
                 <div className="py-8 text-center">
                   <Search className="mx-auto h-8 w-8 text-muted-foreground/50" />
                   <p className="mt-2 text-sm text-muted-foreground">No keywords added yet</p>
-                  <Button variant="outline" size="sm" className="mt-4 gap-1" data-testid="button-add-keywords-empty">
-                    <Plus className="h-4 w-4" />
-                    Add Keywords
-                  </Button>
+                  <Link href={`/projects/${id}/keywords`}>
+                    <Button variant="outline" size="sm" className="mt-4 gap-1" data-testid="button-add-keywords-empty">
+                      <Plus className="h-4 w-4" />
+                      Add Keywords
+                    </Button>
+                  </Link>
                 </div>
               )}
             </CardContent>
