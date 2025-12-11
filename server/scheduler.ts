@@ -108,26 +108,29 @@ async function checkAllProjectRankings(): Promise<void> {
   }
 }
 
-function startSchedulerWithInterval(intervalMinutes: number): void {
+function startSchedulerWithInterval(intervalDays: number): void {
   if (schedulerInterval) {
     clearInterval(schedulerInterval);
     schedulerInterval = null;
   }
 
-  currentIntervalMinutes = intervalMinutes;
+  currentIntervalMinutes = intervalDays * 24 * 60; // Convert days to minutes
   schedulerStartTime = new Date();
-  const intervalMs = intervalMinutes * 60 * 1000;
+  const intervalMs = currentIntervalMinutes * 60 * 1000;
 
-  logScheduler(`Starting automatic ranking scheduler (every ${intervalMinutes} minutes)`);
+  const intervalLabel = intervalDays === 1 ? "1 day" : `${intervalDays} days`;
+  logScheduler(`Starting automatic ranking scheduler (every ${intervalLabel})`);
   
   schedulerInterval = setInterval(checkAllProjectRankings, intervalMs);
   
-  logScheduler(`Scheduler started - first automatic check in ${intervalMinutes} minutes`);
+  logScheduler(`Scheduler started - first automatic check in ${intervalLabel}`);
 }
 
 function handleSettingsChange(newSettings: Settings): void {
-  if (newSettings.scheduleInterval !== currentIntervalMinutes) {
-    logScheduler(`Schedule interval changed to ${newSettings.scheduleInterval} minutes, restarting scheduler`);
+  const newIntervalMinutes = newSettings.scheduleInterval * 24 * 60;
+  if (newIntervalMinutes !== currentIntervalMinutes) {
+    const intervalLabel = newSettings.scheduleInterval === 1 ? "1 day" : `${newSettings.scheduleInterval} days`;
+    logScheduler(`Schedule interval changed to ${intervalLabel}, restarting scheduler`);
     startSchedulerWithInterval(newSettings.scheduleInterval);
   }
 }
