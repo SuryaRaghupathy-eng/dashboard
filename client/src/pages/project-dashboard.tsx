@@ -156,13 +156,21 @@ export default function ProjectDashboard() {
   // Use the filtered current ranking for display if we have a date range set, otherwise use latest
   const displayRanking = dateRange?.from && currentRankingInRange ? currentRankingInRange : latestRanking;
 
-  // Helper function to get position change comparing current to oldest in date range
+  // Get the previous ranking (second most recent) for showing change from last check
+  const previousRanking = allRankings && allRankings.length >= 2 
+    ? allRankings[allRankings.length - 2] 
+    : null;
+
+  // Helper function to get position change comparing current to previous check (or date range comparison)
   const getPositionChange = (keywordId: string, currentPosition: number | null): { change: number | null; direction: 'up' | 'down' | 'same' | null } => {
-    if (!comparisonRanking || currentPosition === null) {
+    // Use comparisonRanking if date range is set, otherwise use previousRanking for last check comparison
+    const rankingToCompare = comparisonRanking || previousRanking;
+    
+    if (!rankingToCompare || currentPosition === null) {
       return { change: null, direction: null };
     }
     
-    const prevRanking = comparisonRanking.rankings.find(r => r.keywordId === keywordId);
+    const prevRanking = rankingToCompare.rankings.find(r => r.keywordId === keywordId);
     if (!prevRanking || prevRanking.position === null) {
       return { change: null, direction: null };
     }
@@ -515,7 +523,11 @@ export default function ProjectDashboard() {
                 <CardTitle className="text-lg font-medium">Keywords & Rankings</CardTitle>
                 {displayRanking && (
                   <span className="text-xs text-muted-foreground">
-                    {comparisonRanking ? "Comparing: " : "Last checked: "}
+                    {comparisonRanking 
+                      ? "Comparing: " 
+                      : previousRanking 
+                        ? "vs previous: " 
+                        : "Last checked: "}
                     {new Date(displayRanking.checkedAt).toLocaleString()}
                   </span>
                 )}
