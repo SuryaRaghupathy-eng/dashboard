@@ -200,18 +200,18 @@ export function getSchedulerStatus(): {
 
   const schedulers = Array.from(projectSchedulers.values());
   
-  schedulers.forEach(scheduler => {
+  for (const scheduler of schedulers) {
     projectCount++;
     totalIntervalMinutes += scheduler.intervalDays * 24 * 60;
     if (scheduler.lastCheckTime && (!lastCheckTime || scheduler.lastCheckTime > lastCheckTime)) {
       lastCheckTime = scheduler.lastCheckTime;
     }
-  });
+  }
 
   const avgIntervalMinutes = projectCount > 0 ? totalIntervalMinutes / projectCount : 5 * 24 * 60;
 
   let nextCheckTime: string | null = null;
-  schedulers.forEach(scheduler => {
+  for (const scheduler of schedulers) {
     if (scheduler.startTime && scheduler.intervalId) {
       const intervalMs = scheduler.intervalDays * 24 * 60 * 60 * 1000;
       const now = new Date().getTime();
@@ -225,12 +225,50 @@ export function getSchedulerStatus(): {
         nextCheckTime = projectNextCheck;
       }
     }
-  });
+  }
 
   return {
     isRunning: projectSchedulers.size > 0,
     intervalMinutes: avgIntervalMinutes,
     lastCheckTime: lastCheckTime?.toISOString() || null,
+    nextCheckTime,
+  };
+}
+
+export function getProjectSchedulerStatus(projectId: string): {
+  isRunning: boolean;
+  intervalMinutes: number;
+  lastCheckTime: string | null;
+  nextCheckTime: string | null;
+} {
+  const scheduler = projectSchedulers.get(projectId);
+  
+  if (!scheduler) {
+    return {
+      isRunning: false,
+      intervalMinutes: 5 * 24 * 60,
+      lastCheckTime: null,
+      nextCheckTime: null,
+    };
+  }
+
+  const intervalMinutes = scheduler.intervalDays * 24 * 60;
+  let nextCheckTime: string | null = null;
+
+  if (scheduler.startTime && scheduler.intervalId) {
+    const intervalMs = scheduler.intervalDays * 24 * 60 * 60 * 1000;
+    const now = new Date().getTime();
+    const startTime = scheduler.startTime.getTime();
+    const elapsed = now - startTime;
+    const intervalsPassed = Math.floor(elapsed / intervalMs);
+    const nextMs = startTime + ((intervalsPassed + 1) * intervalMs);
+    nextCheckTime = new Date(nextMs).toISOString();
+  }
+
+  return {
+    isRunning: !!scheduler.intervalId,
+    intervalMinutes,
+    lastCheckTime: scheduler.lastCheckTime?.toISOString() || null,
     nextCheckTime,
   };
 }

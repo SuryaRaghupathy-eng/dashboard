@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertProjectSchema, settingsSchema, type KeywordRanking, SCHEDULE_INTERVALS } from "@shared/schema";
 import { z } from "zod";
 import { trackKeywordRanking } from "./serper";
-import { getSchedulerStatus, updateProjectScheduler, removeProjectScheduler } from "./scheduler";
+import { getSchedulerStatus, getProjectSchedulerStatus, updateProjectScheduler, removeProjectScheduler } from "./scheduler";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -258,6 +258,20 @@ export async function registerRoutes(
       res.json(status);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch scheduler status" });
+    }
+  });
+
+  app.get("/api/projects/:id/scheduler/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const project = await storage.getProject(id);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      const status = getProjectSchedulerStatus(id);
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch project scheduler status" });
     }
   });
 

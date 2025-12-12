@@ -211,7 +211,8 @@ export default function ProjectDashboard() {
   }
 
   const { data: schedulerStatus } = useQuery<SchedulerStatus>({
-    queryKey: ["/api/scheduler/status"],
+    queryKey: ["/api/projects", id, "scheduler", "status"],
+    enabled: !!id,
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
@@ -222,6 +223,7 @@ export default function ProjectDashboard() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", id, "scheduler", "status"] });
       const intervalLabel = SCHEDULE_INTERVAL_LABELS[parseInt(data.scheduleInterval) as ScheduleInterval] || `every ${data.scheduleInterval} days`;
       toast({
         title: "Settings updated",
